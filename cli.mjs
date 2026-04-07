@@ -274,6 +274,90 @@ const CSS = `
   body.forest .toolbar button.active-theme { background: rgba(45,58,45,0.1); color: #3d5c3d; }
   body.forest .replace-row .replace-btn { border-color: #d4e0d0; color: #88a880; }
 
+  /* Sky theme */
+  body.sky { background: #f0f6fc; color: #2c3e50; }
+  body.sky h1, body.sky h2, body.sky h3 { color: #2980b9; border-color: #d4e6f1; }
+  body.sky h4 { color: #5dade2; }
+  body.sky p, body.sky li { color: #34495e; }
+  body.sky strong { color: #1a252f; }
+  body.sky hr { border-color: #d4e6f1; }
+  body.sky code { background: #ddeaf6; color: #2c3e50; }
+  body.sky pre { background: #ddeaf6; border-color: #c5d9ed; }
+  body.sky pre code { color: #34495e; }
+  body.sky blockquote { border-color: #a9cce3; color: #5dade2; }
+  body.sky table { color: #34495e; }
+  body.sky th, body.sky td { border-color: #d4e6f1; }
+  body.sky th { background: #ddeaf6; }
+  body.sky tr:nth-child(even) td { background: #f0f6fc; }
+  body.sky .toc a:hover { color: #2980b9; }
+  body.sky .toc a.active { color: #1a5276; }
+  body.sky .toolbar { background: rgba(240,246,252,0.85); box-shadow: 0 1px 4px rgba(41,128,185,0.08), 0 0 0 0.5px rgba(41,128,185,0.06); }
+  body.sky .toolbar button { color: #85c1e9; }
+  body.sky .toolbar button:hover { background: rgba(41,128,185,0.06); }
+  body.sky .toolbar .divider { background: rgba(41,128,185,0.08); }
+  body.sky .toolbar .search-input { background: rgba(255,255,255,0.5); border-color: #d4e6f1; color: #2c3e50; }
+  body.sky .copy-btn { background: rgba(41,128,185,0.06); color: #85c1e9; }
+  body.sky .copy-btn:hover { background: rgba(41,128,185,0.1); }
+  body.sky mark.highlight { background: #a9d4f5; }
+  body.sky .toolbar button.active-theme { background: rgba(41,128,185,0.1); color: #2980b9; }
+  body.sky .replace-row .replace-btn { border-color: #d4e6f1; color: #85c1e9; }
+
+  /* Wine theme */
+  body.wine { background: #1a1018; color: #d4c4cf; }
+  body.wine h1, body.wine h2, body.wine h3 { color: #c2667a; border-color: #2e1e28; }
+  body.wine h4 { color: #9a7080; }
+  body.wine p, body.wine li { color: #c4b0ba; }
+  body.wine strong { color: #e8d8e0; }
+  body.wine hr { border-color: #2e1e28; }
+  body.wine code { background: #251a22; color: #d4c4cf; }
+  body.wine pre { background: #251a22; border-color: #2e1e28; }
+  body.wine pre code { color: #c4b0ba; }
+  body.wine blockquote { border-color: #3d2a35; color: #9a7080; }
+  body.wine table { color: #c4b0ba; }
+  body.wine th, body.wine td { border-color: #2e1e28; }
+  body.wine th { background: #251a22; }
+  body.wine tr:nth-child(even) td { background: #1a1018; }
+  body.wine .toc a:hover { color: #d4c4cf; }
+  body.wine .toc a.active { color: #c2667a; }
+  body.wine .toolbar { background: rgba(37,26,34,0.85); box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.04); }
+  body.wine .toolbar button { color: #9a7080; }
+  body.wine .toolbar button:hover { background: rgba(255,255,255,0.06); }
+  body.wine .toolbar .divider { background: rgba(255,255,255,0.06); }
+  body.wine .toolbar .search-input { background: rgba(0,0,0,0.3); border-color: #3d2a35; color: #d4c4cf; }
+  body.wine .copy-btn { background: rgba(255,255,255,0.08); color: #9a7080; }
+  body.wine .copy-btn:hover { background: rgba(255,255,255,0.12); }
+  body.wine mark.highlight { background: #4a2a38; }
+  body.wine .toolbar button.active-theme { background: rgba(194,102,122,0.15); color: #c2667a; }
+  body.wine .replace-row .replace-btn { border-color: #3d2a35; color: #9a7080; }
+
+  /* Lemon theme */
+  body.lemon { background: #fdfcf0; color: #3d3a2e; }
+  body.lemon h1, body.lemon h2, body.lemon h3 { color: #8a7d2a; border-color: #e8e4c8; }
+  body.lemon h4 { color: #a89e58; }
+  body.lemon p, body.lemon li { color: #4a4636; }
+  body.lemon strong { color: #2e2b1a; }
+  body.lemon hr { border-color: #e8e4c8; }
+  body.lemon code { background: #f2efd8; color: #5c5530; }
+  body.lemon pre { background: #f2efd8; border-color: #e0dcbe; }
+  body.lemon pre code { color: #4a4636; }
+  body.lemon blockquote { border-color: #d4ce9a; color: #a89e58; }
+  body.lemon table { color: #4a4636; }
+  body.lemon th, body.lemon td { border-color: #e8e4c8; }
+  body.lemon th { background: #f2efd8; }
+  body.lemon tr:nth-child(even) td { background: #fdfcf0; }
+  body.lemon .toc a:hover { color: #8a7d2a; }
+  body.lemon .toc a.active { color: #5c5530; }
+  body.lemon .toolbar { background: rgba(253,252,240,0.85); box-shadow: 0 1px 4px rgba(61,58,46,0.08), 0 0 0 0.5px rgba(61,58,46,0.06); }
+  body.lemon .toolbar button { color: #b8b080; }
+  body.lemon .toolbar button:hover { background: rgba(61,58,46,0.06); }
+  body.lemon .toolbar .divider { background: rgba(61,58,46,0.08); }
+  body.lemon .toolbar .search-input { background: rgba(255,255,255,0.5); border-color: #e8e4c8; color: #3d3a2e; }
+  body.lemon .copy-btn { background: rgba(61,58,46,0.06); color: #b8b080; }
+  body.lemon .copy-btn:hover { background: rgba(61,58,46,0.1); }
+  body.lemon mark.highlight { background: #e8e0a0; }
+  body.lemon .toolbar button.active-theme { background: rgba(61,58,46,0.1); color: #8a7d2a; }
+  body.lemon .replace-row .replace-btn { border-color: #e8e4c8; color: #b8b080; }
+
   /* TOC sidebar */
   .toc {
     position: fixed;
@@ -372,6 +456,7 @@ const CSS = `
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
     min-width: 28px;
+    flex: 1;
   }
 
   .toolbar button.active-theme {
@@ -468,7 +553,7 @@ const CSS = `
   @page { margin: 1.5cm; size: A4; }
 `;
 
-function buildHtml(mdContent, title, rawMdOriginal) {
+function buildHtml(mdContent, title) {
   const body = marked(mdContent);
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -502,6 +587,24 @@ function buildHtml(mdContent, title, rawMdOriginal) {
       <button onclick="resizeWidth(100)">\u2192</button>
     </div>
     <div class="divider"></div>
+    <div class="row-label">Margin</div>
+    <div class="row">
+      <button onclick="adjustMargin(-12)">\u2212</button>
+      <span class="val" id="marginLabel">72</span>
+      <button onclick="adjustMargin(12)">+</button>
+    </div>
+    <div class="divider"></div>
+    <div class="row-label">Download</div>
+    <div class="row">
+      <button onclick="downloadPdf()">PDF</button>
+      <button onclick="downloadTxt()">TXT</button>
+    </div>
+    <div class="divider"></div>
+    <div class="row-label">Edit</div>
+    <div class="row">
+      <button onclick="toggleEdit()" id="editBtn">OFF</button>
+    </div>
+    <div class="divider"></div>
     <div class="row-label">Theme</div>
     <div class="row">
       <button onclick="setTheme('light')" id="themeLight" class="active-theme">Light</button>
@@ -513,16 +616,13 @@ function buildHtml(mdContent, title, rawMdOriginal) {
       <button onclick="setTheme('nugget')" id="themeNugget">Nugget</button>
       <button onclick="setTheme('forest')" id="themeForest">Forest</button>
     </div>
-    <div class="divider"></div>
-    <div class="row-label">Download</div>
     <div class="row">
-      <button onclick="downloadPdf()">PDF</button>
-      <button onclick="downloadMd()">MD</button>
-      <button onclick="downloadTxt()">TXT</button>
+      <button onclick="setTheme('sky')" id="themeSky">Sky</button>
+      <button onclick="setTheme('wine')" id="themeWine">Wine</button>
+      <button onclick="setTheme('lemon')" id="themeLemon">Lemon</button>
     </div>
   </div>
   <article id="content">${body}</article>
-  <script id="rawMd" type="text/plain">${rawMdOriginal.replace(/<\/script>/g, '<\\/script>')}</script>
   <script>
     // Layout
     let scale = 100;
@@ -552,12 +652,44 @@ function buildHtml(mdContent, title, rawMdOriginal) {
       updatePositions();
     }
 
+    let spacing = 100;
+    function adjustMargin(d) {
+      spacing = Math.max(50, Math.min(200, spacing + d));
+      var r = spacing / 100;
+      document.documentElement.style.lineHeight = (1.8 * r).toFixed(2);
+      content.style.paddingTop = Math.round(72 * r) + 'px';
+      content.style.paddingBottom = Math.round(96 * r) + 'px';
+      content.querySelectorAll('h1').forEach(function(e) { e.style.margin = Math.round(52*r)+'px 0 '+Math.round(16*r)+'px'; });
+      content.querySelectorAll('h2').forEach(function(e) { e.style.margin = Math.round(44*r)+'px 0 '+Math.round(12*r)+'px'; });
+      content.querySelectorAll('h3').forEach(function(e) { e.style.margin = Math.round(36*r)+'px 0 '+Math.round(8*r)+'px'; });
+      content.querySelectorAll('p').forEach(function(e) { e.style.marginBottom = Math.round(4*r)+'px'; });
+      content.querySelectorAll('pre,blockquote').forEach(function(e) { e.style.margin = Math.round(24*r)+'px 0'; });
+      content.querySelectorAll('ul,ol').forEach(function(e) { e.style.margin = Math.round(14*r)+'px 0'; });
+      content.querySelectorAll('li').forEach(function(e) { e.style.marginBottom = Math.round(6*r)+'px'; });
+      document.getElementById('marginLabel').textContent = spacing + '%';
+    }
+
+    var editing = false;
+    function toggleEdit() {
+      editing = !editing;
+      content.contentEditable = editing;
+      var btn = document.getElementById('editBtn');
+      btn.textContent = editing ? 'ON' : 'OFF';
+      if (editing) {
+        btn.classList.add('active-theme');
+        content.style.outline = 'none';
+        content.focus();
+      } else {
+        btn.classList.remove('active-theme');
+      }
+    }
+
     updatePositions();
 
     // Theme
     function setTheme(t) {
       document.body.className = t === 'light' ? '' : t;
-      document.querySelectorAll('#themeLight,#themeDark,#themeSpace,#themeSpring,#themeNugget,#themeForest').forEach(function(b) {
+      document.querySelectorAll('#themeLight,#themeDark,#themeSpace,#themeSpring,#themeNugget,#themeForest,#themeSky,#themeWine,#themeLemon').forEach(function(b) {
         b.classList.remove('active-theme');
       });
       document.getElementById('theme' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active-theme');
@@ -660,12 +792,6 @@ function buildHtml(mdContent, title, rawMdOriginal) {
       document.body.className = prev;
     }
 
-    // Download MD
-    function downloadMd() {
-      var raw = document.getElementById('rawMd').textContent;
-      downloadFile(raw, document.title + '.md', 'text/markdown');
-    }
-
     // Download TXT
     function downloadTxt() {
       downloadFile(content.innerText, document.title + '.txt', 'text/plain');
@@ -708,7 +834,7 @@ function convert(inputPath, outDir) {
     return `![${alt}](file://${absPath})`;
   });
 
-  const html = buildHtml(md, baseName, rawMd);
+  const html = buildHtml(md, baseName);
   const htmlPath = path.join(outDir, `${baseName}.html`);
   fs.writeFileSync(htmlPath, html);
 
