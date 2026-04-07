@@ -41,12 +41,11 @@ Use `--out` to save the HTML file permanently.
 
 ## macOS: Double-click to open
 
-Run the install script to create a macOS app and set it as the default viewer for `.md` files:
+Install via Homebrew to get the macOS app:
 
 ```bash
-git clone https://github.com/ecsimsw/mdviewer.git
-cd mdviewer
-./install.sh
+brew tap ecsimsw/tap
+brew install --cask mdviewer
 ```
 
 After installation, double-click any `.md` file to open it with MarkdownViewer.
