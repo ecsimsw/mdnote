@@ -68,6 +68,7 @@ function App() {
   const [listMenuVisible, setListMenuVisible] = useState(false);
   const [listStyle, setListStyle] = useState(() => loadSetting('listStyle', 0));
   const [paneRatio, setPaneRatio] = useState(() => loadSetting('paneRatio', 50));
+  const [customListChar, setCustomListChar] = useState(() => loadSetting('customListChar', '★'));
   const LIST_STYLES = [
     { label: '•', type: 'disc' },
     { label: '–', type: '"–  "' },
@@ -78,6 +79,7 @@ function App() {
     { label: '가.', type: 'korean-syllable' },
     { label: 'i.', type: 'lower-roman' },
     { label: '김', type: 'kim-jin-hwan' },
+    { label: customListChar, type: `"${customListChar}  "`, custom: true },
   ];
 
   const editorRef = useRef(null);
@@ -98,6 +100,7 @@ function App() {
   useEffect(() => { saveSetting('lineHeight', lineHeight); }, [lineHeight]);
   useEffect(() => { saveSetting('maxWidth', maxWidth); }, [maxWidth]);
   useEffect(() => { saveSetting('listStyle', listStyle); }, [listStyle]);
+  useEffect(() => { saveSetting('customListChar', customListChar); }, [customListChar]);
   useEffect(() => { saveSetting('paneRatio', paneRatio); }, [paneRatio]);
   useEffect(() => {
     const timer = setTimeout(() => saveSetting('md', md), 500);
@@ -328,8 +331,10 @@ function App() {
                 return !v;
               });
             }} title="Replace"
-              style={{ color: editorTheme.edHeaderColor || '#ccc', fontWeight: 400, fontSize: 14 }}>
-              R
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>
+              </svg>
             </button>
             <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" ref={editorThemeBtnRef}
@@ -429,12 +434,6 @@ function App() {
       <div className="pane preview-pane" style={{ width: (100 - paneRatio) + '%', background: theme.bg }}>
         <div className="preview-header">
           <div className="header-controls">
-            <button className="ctrl-btn" ref={listBtnRef}
-              onClick={() => setListMenuVisible(v => !v)}
-              title="List style" style={{ minWidth: 24, justifyContent: 'center' }}>
-              {LIST_STYLES[listStyle].label}
-            </button>
-            <div className="ctrl-sep" />
             <button className="ctrl-btn"
               onMouseDown={() => startHold(() => setFontSize(f => Math.max(8, f - 1)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>A&minus;</button>
@@ -460,6 +459,12 @@ function App() {
             <button className="ctrl-btn"
               onMouseDown={() => startHold(() => setMaxWidth(w => Math.min(100, w + 10)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>{'\u25B3'}</button>
+            <div className="ctrl-sep" />
+            <button className="ctrl-btn" ref={listBtnRef}
+              onClick={() => setListMenuVisible(v => !v)}
+              title="List style" style={{ minWidth: 24, justifyContent: 'center' }}>
+              {LIST_STYLES[listStyle].label}
+            </button>
             <div className="ctrl-sep" />
             <button className="ctrl-btn" ref={themeBtnRef}
               onClick={() => setThemeMenuVisible(v => !v)} title="Theme">
@@ -512,13 +517,31 @@ function App() {
         })() : {}}
       >
         {LIST_STYLES.map((s, i) => (
-          <button
-            key={s.label}
-            className={`list-option ${listStyle === i ? 'active' : ''}`}
-            onClick={() => { setListStyle(i); setListMenuVisible(false); }}
-          >
-            {s.label}
-          </button>
+          s.custom ? (
+            <div key="custom" className={`list-option ${listStyle === i ? 'active' : ''}`}
+              style={{ padding: '4px 8px', gap: 4 }}>
+              <input
+                type="text"
+                value={customListChar}
+                onChange={e => { setCustomListChar(e.target.value); setListStyle(i); }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  width: 32, textAlign: 'center', background: 'transparent',
+                  border: '1px solid #ddd', borderRadius: 4, color: 'inherit',
+                  fontSize: 13, padding: '2px 4px', outline: 'none', fontFamily: 'inherit',
+                }}
+                maxLength={3}
+              />
+            </div>
+          ) : (
+            <button
+              key={s.label}
+              className={`list-option ${listStyle === i ? 'active' : ''}`}
+              onClick={() => { setListStyle(i); setListMenuVisible(false); }}
+            >
+              {s.label}
+            </button>
+          )
         ))}
       </div>
 
