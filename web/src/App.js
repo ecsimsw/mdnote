@@ -428,7 +428,6 @@ function App() {
 
       <div className="pane preview-pane" style={{ width: (100 - paneRatio) + '%', background: theme.bg }}>
         <div className="preview-header">
-          <span className="label">View</span>
           <div className="header-controls">
             <button className="ctrl-btn" ref={listBtnRef}
               onClick={() => setListMenuVisible(v => !v)}
