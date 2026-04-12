@@ -6,7 +6,7 @@ import os from "os";
 import { execSync } from "child_process";
 import { marked } from "marked";
 
-const CSS = `
+export const CSS = `
   @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -640,7 +640,7 @@ const CSS = `
   @page { margin: 1.5cm; size: A4; }
 `;
 
-function buildHtml(mdContent, title) {
+export function buildHtml(mdContent, title) {
   const body = marked(mdContent);
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -955,6 +955,8 @@ function cleanOldTempDirs() {
 }
 
 // --- CLI ---
+const isCLI = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+if (!isCLI) { /* imported as module, skip CLI execution */ } else {
 cleanOldTempDirs();
 const args = process.argv.slice(2);
 
@@ -996,3 +998,4 @@ if (fs.statSync(target).isDirectory()) {
   const outDir = defaultOut();
   convert(target, outDir);
 }
+} // end isCLI
