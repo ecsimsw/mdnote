@@ -89,6 +89,7 @@ function App() {
   const [fontSize, setFontSize] = useState(() => loadSetting('fontSize', 15.5));
   const [lineHeight, setLineHeight] = useState(() => loadSetting('lineHeight', 1.8));
   const [maxWidth, setMaxWidth] = useState(() => loadSetting('maxWidth', 100));
+  const [topPadding, setTopPadding] = useState(() => loadSetting('topPadding', 40));
   const [editorVisible, setEditorVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
@@ -126,6 +127,8 @@ function App() {
   const themeMenuRef = useRef(null);
   const listBtnRef = useRef(null);
   const listMenuRef = useRef(null);
+  const dividerRef = useRef(null);
+  const dividerDotRef = useRef(null);
   const editorThemeBtnRef = useRef(null);
   const editorThemeMenuRef = useRef(null);
   const isDragging = useRef(false);
@@ -136,6 +139,7 @@ function App() {
   useEffect(() => { saveSetting('fontSize', fontSize); }, [fontSize]);
   useEffect(() => { saveSetting('lineHeight', lineHeight); }, [lineHeight]);
   useEffect(() => { saveSetting('maxWidth', maxWidth); }, [maxWidth]);
+  useEffect(() => { saveSetting('topPadding', topPadding); }, [topPadding]);
   useEffect(() => { saveSetting('listStyle', listStyle); }, [listStyle]);
   useEffect(() => { saveSetting('customListChar', customListChar); }, [customListChar]);
   useEffect(() => { saveSetting('paneRatio', paneRatio); }, [paneRatio]);
@@ -222,6 +226,12 @@ function App() {
   // Divider drag
   useEffect(() => {
     const onMouseMove = (e) => {
+      if (dividerDotRef.current && dividerRef.current) {
+        dividerDotRef.current.style.top = e.clientY + 'px';
+        const rect = dividerRef.current.getBoundingClientRect();
+        const near = Math.abs(e.clientX - rect.left) < 20 || isDragging.current;
+        dividerDotRef.current.classList.toggle('visible', near);
+      }
       if (!isDragging.current) return;
       const ratio = Math.max(20, Math.min(80, e.clientX / window.innerWidth * 100));
       setPaneRatio(ratio);
@@ -610,15 +620,20 @@ function App() {
         />
       </div>
 
-      <div className="divider" style={{ background: editorTheme.edBorder || '#333' }} onMouseDown={(e) => {
-        isDragging.current = true;
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-        e.preventDefault();
-      }} />
+      <div className="divider" ref={dividerRef} style={{ background: editorTheme.edBorder || '#333' }}
+        onMouseDown={(e) => {
+          isDragging.current = true;
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+          e.preventDefault();
+        }}
+      >
+        <span className="divider-dot" ref={dividerDotRef} />
+      </div>
 
       <div className="pane preview-pane" style={{ width: (100 - paneRatio) + '%', background: theme.bg }}>
         <div className="preview-header">
+          <span className="label" style={{ fontWeight: 700, marginRight: 8 }}>PdfViewer</span>
           <div className="header-controls">
             <button className="ctrl-btn"
               onMouseDown={() => startHold(() => setFontSize(f => Math.max(8, f - 1)))}
@@ -639,17 +654,32 @@ function App() {
             </button>
             <div className="ctrl-sep" />
             <button className="ctrl-btn" title="Narrower"
-              onMouseDown={() => startHold(() => setMaxWidth(w => Math.max(40, w - 10)))}
+              onMouseDown={() => startHold(() => setMaxWidth(w => Math.max(40, w - 5)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                 <path d="M18 12H6"/><path d="M14 8l4 4-4 4"/><path d="M10 8l-4 4 4 4"/>
               </svg>
             </button>
             <button className="ctrl-btn" title="Wider"
-              onMouseDown={() => startHold(() => setMaxWidth(w => Math.min(100, w + 10)))}
+              onMouseDown={() => startHold(() => setMaxWidth(w => Math.min(100, w + 5)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                 <path d="M18 12H6"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/>
+              </svg>
+            </button>
+            <div className="ctrl-sep" />
+            <button className="ctrl-btn" title="Move up"
+              onMouseDown={() => startHold(() => setTopPadding(p => Math.max(0, p - 5)))}
+              onMouseUp={stopHold} onMouseLeave={stopHold}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 14, height: 14 }}>
+                <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
+              </svg>
+            </button>
+            <button className="ctrl-btn" title="Move down"
+              onMouseDown={() => startHold(() => setTopPadding(p => Math.min(200, p + 5)))}
+              onMouseUp={stopHold} onMouseLeave={stopHold}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 14, height: 14 }}>
+                <path d="M12 5v14"/><path d="M5 12l7 7 7-7"/>
               </svg>
             </button>
             <div className="ctrl-sep" />
@@ -683,6 +713,7 @@ function App() {
               '--list-style': LIST_STYLES[listStyle].type,
               maxWidth: maxWidth + '%',
               margin: '0 auto',
+              paddingTop: topPadding + 'px',
             }}
           />
         </div>
