@@ -42,6 +42,19 @@ function App() {
   const [matches, setMatches] = useState([]);
   const [currentMatch, setCurrentMatch] = useState(-1);
   const [themeMenuVisible, setThemeMenuVisible] = useState(false);
+  const [listMenuVisible, setListMenuVisible] = useState(false);
+  const [listStyle, setListStyle] = useState(0);
+  const LIST_STYLES = [
+    { label: '•', type: 'disc' },
+    { label: '–', type: '"–  "' },
+    { label: '‣', type: '"‣  "' },
+    { label: '■', type: 'square' },
+    { label: '1.', type: 'decimal' },
+    { label: 'a.', type: 'lower-alpha' },
+    { label: '가.', type: 'korean-syllable' },
+    { label: 'i.', type: 'lower-roman' },
+    { label: '김', type: 'kim-jin-hwan' },
+  ];
   const [paneRatio, setPaneRatio] = useState(50);
 
   const editorRef = useRef(null);
@@ -49,6 +62,8 @@ function App() {
   const contentRef = useRef(null);
   const themeBtnRef = useRef(null);
   const themeMenuRef = useRef(null);
+  const listBtnRef = useRef(null);
+  const listMenuRef = useRef(null);
   const isDragging = useRef(false);
 
   // Apply theme to body
@@ -190,6 +205,10 @@ function App() {
           themeBtnRef.current && !themeBtnRef.current.contains(e.target)) {
         setThemeMenuVisible(false);
       }
+      if (listMenuRef.current && !listMenuRef.current.contains(e.target) &&
+          listBtnRef.current && !listBtnRef.current.contains(e.target)) {
+        setListMenuVisible(false);
+      }
     };
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
@@ -323,6 +342,12 @@ function App() {
               </svg>
             </button>
             <div className="ctrl-sep" />
+            <button className="ctrl-btn" ref={listBtnRef}
+              onClick={() => setListMenuVisible(v => !v)}
+              title="List style" style={{ minWidth: 24, justifyContent: 'center' }}>
+              {LIST_STYLES[listStyle].label}
+            </button>
+            <div className="ctrl-sep" />
             <button className="ctrl-btn" onClick={() => window.print()} title="PDF">PDF</button>
             <div className="ctrl-sep" />
             <button className="ctrl-btn" onClick={() => setSearchVisible(v => {
@@ -341,6 +366,8 @@ function App() {
             style={{
               zoom: fontSize / 15.5,
               lineHeight: lineHeight,
+              '--spacing': lineHeight / 1.8,
+              '--list-style': LIST_STYLES[listStyle].type,
               maxWidth: maxWidth + '%',
               margin: '0 auto',
             }}
@@ -361,6 +388,25 @@ function App() {
           >
             <span className="theme-dot" style={{ background: t.bg }} />
             {t.name}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className={`list-menu ${listMenuVisible ? 'visible' : ''}`}
+        ref={listMenuRef}
+        style={listMenuVisible && listBtnRef.current ? (() => {
+          const rect = listBtnRef.current.getBoundingClientRect();
+          return { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+        })() : {}}
+      >
+        {LIST_STYLES.map((s, i) => (
+          <button
+            key={s.label}
+            className={`list-option ${listStyle === i ? 'active' : ''}`}
+            onClick={() => { setListStyle(i); setListMenuVisible(false); }}
+          >
+            {s.label}
           </button>
         ))}
       </div>

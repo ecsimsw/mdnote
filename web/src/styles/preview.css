@@ -1,6 +1,19 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
+@counter-style korean-syllable {
+  system: alphabetic;
+  symbols: '가' '나' '다' '라' '마' '바' '사' '아' '자' '차' '카' '타' '파' '하';
+  suffix: '. ';
+}
+
+@counter-style kim-jin-hwan {
+  system: cyclic;
+  symbols: '김' '진' '환';
+  suffix: '. ';
+}
+
 article {
+  --spacing: 1;
   max-width: none;
   padding: 32px 32px 96px;
   overflow: hidden;
@@ -13,20 +26,21 @@ article > :first-child { margin-top: 0; }
 
 h1 {
   font-size: 22px; font-weight: 700; line-height: 1.35;
-  color: #111; margin: 52px 0 16px; letter-spacing: -0.3px;
-  border-bottom: 1px solid #eee; padding-bottom: 12px;
+  color: #111; letter-spacing: -0.3px;
+  margin: calc(52px * var(--spacing)) 0 calc(16px * var(--spacing));
+  border-bottom: 1px solid #eee; padding-bottom: calc(12px * var(--spacing));
 }
-h2 { font-size: 19px; font-weight: 700; margin: 44px 0 12px; color: #111; }
-h3 { font-size: 17px; font-weight: 700; margin: 36px 0 8px; color: #111; }
-h4 { font-size: 15px; font-weight: 600; margin: 28px 0 6px; color: #555; }
+h2 { font-size: 19px; font-weight: 700; color: #111; margin: calc(44px * var(--spacing)) 0 calc(12px * var(--spacing)); }
+h3 { font-size: 17px; font-weight: 700; color: #111; margin: calc(36px * var(--spacing)) 0 calc(8px * var(--spacing)); }
+h4 { font-size: 15px; font-weight: 600; color: #555; margin: calc(28px * var(--spacing)) 0 calc(6px * var(--spacing)); }
 
-p { margin-bottom: 4px; font-size: 15.5px; color: #333; word-break: keep-all; line-height: 1.8; }
+p { margin-bottom: calc(4px * var(--spacing)); font-size: 15.5px; color: #333; word-break: keep-all; }
 a { color: inherit; }
 a:visited { color: inherit; }
 
-hr { border: none; border-top: 1px solid #eee; margin: 40px 0; }
-ul, ol { margin: 14px 0; padding-left: 22px; }
-li { margin-bottom: 6px; font-size: 15.5px; color: #333; line-height: 1.8; }
+hr { border: none; border-top: 1px solid #eee; margin: calc(40px * var(--spacing)) 0; }
+ul, ol { margin: calc(14px * var(--spacing)) 0; padding-left: 22px; list-style-type: var(--list-style, disc); }
+li { margin-bottom: calc(6px * var(--spacing)); font-size: 15.5px; color: #333; }
 strong { color: #111; }
 
 code {
@@ -40,8 +54,8 @@ pre {
   background: #f7f7f7;
   border: 1px solid #e8e8e8;
   border-radius: 6px;
-  padding: 18px 20px;
-  margin: 24px 0;
+  padding: calc(18px * var(--spacing)) 20px;
+  margin: calc(24px * var(--spacing)) 0;
   overflow-x: auto;
   font-size: 13.5px;
   line-height: 1.65;
@@ -62,11 +76,11 @@ pre:hover .copy-btn { opacity: 1; }
 
 blockquote {
   border-left: 2px solid #ddd;
-  padding: 10px 18px; margin: 24px 0; color: #666; font-size: 14px;
+  padding: calc(10px * var(--spacing)) 18px; margin: calc(24px * var(--spacing)) 0; color: #666; font-size: 14px;
 }
 
-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; color: #333; }
-th, td { border: 1px solid #e0e0e0; padding: 10px 14px; text-align: left; line-height: 1.6; }
+table { width: 100%; border-collapse: collapse; margin: calc(24px * var(--spacing)) 0; font-size: 15px; color: #333; }
+th, td { border: 1px solid #e0e0e0; padding: calc(10px * var(--spacing)) 14px; text-align: left; line-height: 1.6; }
 th { background: #f7f7f7; font-weight: 600; }
 tr:nth-child(even) td { background: #fafafa; }
 

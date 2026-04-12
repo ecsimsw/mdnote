@@ -121,3 +121,23 @@ body {
   width: 10px; height: 10px; border-radius: 50%;
   flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1);
 }
+
+/* List style menu */
+.list-menu {
+  display: none; position: fixed; background: #fff;
+  border: 1px solid #e0e0e0; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  padding: 4px; z-index: 9999;
+  flex-direction: column; width: auto; min-width: 48px;
+}
+.list-menu.visible { display: flex; }
+
+.list-option {
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px 14px; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 13px; font-family: inherit;
+  background: transparent; color: #555; transition: background 0.1s;
+  white-space: nowrap;
+}
+.list-option:hover { background: #f0f0f0; }
+.list-option.active { background: #e8e8e8; font-weight: 600; }
