@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.css": "/mdnote/static/css/main.ee8080f0.css",
-    "main.js": "/mdnote/static/js/main.bd173831.js",
-    "index.html": "/mdnote/index.html",
-    "main.ee8080f0.css.map": "/mdnote/static/css/main.ee8080f0.css.map",
-    "main.bd173831.js.map": "/mdnote/static/js/main.bd173831.js.map"
+    "main.css": "/static/css/main.ee8080f0.css",
+    "main.js": "/static/js/main.bd173831.js",
+    "index.html": "/index.html",
+    "main.ee8080f0.css.map": "/static/css/main.ee8080f0.css.map",
+    "main.bd173831.js.map": "/static/js/main.bd173831.js.map"
   },
   "entrypoints": [
     "static/css/main.ee8080f0.css",
