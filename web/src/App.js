@@ -37,11 +37,14 @@ function App() {
   const [lineHeight, setLineHeight] = useState(1.8);
   const [maxWidth, setMaxWidth] = useState(100);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [replaceVisible, setReplaceVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [replaceQuery, setReplaceQuery] = useState('');
   const [matches, setMatches] = useState([]);
   const [currentMatch, setCurrentMatch] = useState(-1);
   const [themeMenuVisible, setThemeMenuVisible] = useState(false);
+  const [editorTheme, setEditorTheme] = useState({ name: 'Dark', cls: 'dark', bg: '#1a1a1a', edBg: '#1e1e1e', edColor: '#d4d4d4', edHeaderBg: '#252526', edHeaderColor: '#ccc', edBorder: '#333', edCaret: '#aeafad' });
+  const [editorThemeMenuVisible, setEditorThemeMenuVisible] = useState(false);
   const [listMenuVisible, setListMenuVisible] = useState(false);
   const [listStyle, setListStyle] = useState(0);
   const LIST_STYLES = [
@@ -64,6 +67,8 @@ function App() {
   const themeMenuRef = useRef(null);
   const listBtnRef = useRef(null);
   const listMenuRef = useRef(null);
+  const editorThemeBtnRef = useRef(null);
+  const editorThemeMenuRef = useRef(null);
   const isDragging = useRef(false);
 
   // Apply theme to body
@@ -106,8 +111,8 @@ function App() {
       pre.appendChild(btn);
     });
 
-    // Highlight search matches
-    if (!searchQuery) return;
+    // Highlight search matches (only in Find mode, not Replace)
+    if (!searchQuery || !searchVisible) return;
     const walk = document.createTreeWalker(contentRef.current, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walk.nextNode()) nodes.push(walk.currentNode);
@@ -190,7 +195,8 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
         e.preventDefault();
         setSearchVisible(v => {
-          if (v) { setSearchQuery(''); setReplaceQuery(''); }
+          if (v) { setSearchQuery(''); }
+          setReplaceVisible(false);
           return !v;
         });
       }
@@ -209,6 +215,10 @@ function App() {
       if (listMenuRef.current && !listMenuRef.current.contains(e.target) &&
           listBtnRef.current && !listBtnRef.current.contains(e.target)) {
         setListMenuVisible(false);
+      }
+      if (editorThemeMenuRef.current && !editorThemeMenuRef.current.contains(e.target) &&
+          editorThemeBtnRef.current && !editorThemeBtnRef.current.contains(e.target)) {
+        setEditorThemeMenuVisible(false);
       }
     };
     document.addEventListener('click', handler);
@@ -262,33 +272,104 @@ function App() {
 
   return (
     <div className="app">
-      <div className="pane editor-pane" style={{ width: paneRatio + '%' }}>
-        <div className="editor-header">
-          <span className="file-name">Untitled.md</span>
+      <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e' }}>
+        <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
+          <span className="file-name" style={{ color: editorTheme.edHeaderColor || '#ccc' }}>Editor</span>
+          <div className="header-controls">
+            <button className="ctrl-btn" onClick={() => setSearchVisible(v => {
+              if (v) { setSearchQuery(''); }
+              setReplaceVisible(false);
+              return !v;
+            })} title="Find"
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+            </button>
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+            <button className="ctrl-btn" onClick={() => {
+              setReplaceVisible(v => {
+                if (v) { setSearchQuery(''); setReplaceQuery(''); }
+                setSearchVisible(false);
+                return !v;
+              });
+            }} title="Replace"
+              style={{ color: editorTheme.edHeaderColor || '#ccc', fontWeight: 400, fontSize: 14 }}>
+              R
+            </button>
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+            <button className="ctrl-btn" ref={editorThemeBtnRef}
+              onClick={() => setEditorThemeMenuVisible(v => !v)} title="Editor Theme"
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
+              <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 14, height: 14 }}>
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+              </svg>
+            </button>
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+            <button className="ctrl-btn" onClick={() => {
+              navigator.clipboard.writeText(md);
+              const btn = document.activeElement;
+              const orig = btn.innerHTML;
+              btn.innerHTML = '✓';
+              setTimeout(() => { btn.innerHTML = orig; }, 1000);
+            }} title="Copy to clipboard"
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div className={`search-bar ${searchVisible ? 'visible' : ''}`}>
+        <div className={`search-bar ${searchVisible ? 'visible' : ''}`}
+          style={{
+            background: editorTheme.edHeaderBg || '#252526',
+            borderColor: editorTheme.edBorder || '#333',
+            '--sb-input-bg': editorTheme.edBg || '#1e1e1e',
+            '--sb-input-color': editorTheme.edColor || '#d4d4d4',
+            '--sb-input-border': editorTheme.edBorder || '#555',
+            '--sb-btn-bg': editorTheme.edBg || '#3c3c3c',
+            '--sb-btn-color': editorTheme.edColor || '#ccc',
+            '--sb-label-color': editorTheme.edHeaderColor || '#888',
+          }}>
           <span className="search-label">Find</span>
           <input
             type="text" placeholder="Search..." value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={onSearchKeyDown}
           />
+          <button onClick={findPrev} title="Previous">&lsaquo;</button>
+          <button onClick={findNext} title="Next">&rsaquo;</button>
           <span className="search-match-info">
             {matches.length > 0 && currentMatch >= 0
               ? `${currentMatch + 1}/${matches.length}`
               : matches.length > 0 ? `${matches.length} found` : ''}
           </span>
-          <button onClick={findPrev} title="Previous">&lsaquo;</button>
-          <button onClick={findNext} title="Next">&rsaquo;</button>
-          <span className="search-label" style={{ marginLeft: 8 }}>Replace</span>
+          <button className="close-search" onClick={() => { setSearchVisible(false); setReplaceVisible(false); setSearchQuery(''); }}>&times;</button>
+        </div>
+        {replaceVisible && <div className="search-bar visible"
+          style={{
+            background: editorTheme.edHeaderBg || '#252526',
+            borderColor: editorTheme.edBorder || '#333',
+            '--sb-input-bg': editorTheme.edBg || '#1e1e1e',
+            '--sb-input-color': editorTheme.edColor || '#d4d4d4',
+            '--sb-input-border': editorTheme.edBorder || '#555',
+            '--sb-btn-bg': editorTheme.edBg || '#3c3c3c',
+            '--sb-btn-color': editorTheme.edColor || '#ccc',
+            '--sb-label-color': editorTheme.edHeaderColor || '#888',
+          }}>
           <input
-            type="text" placeholder="Replace with..." value={replaceQuery}
+            type="text" placeholder="Find..." value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          <span className="search-label">&rarr;</span>
+          <input
+            type="text" placeholder="Replace..." value={replaceQuery}
             onChange={e => setReplaceQuery(e.target.value)}
           />
           <button onClick={replaceCurrent}>Replace</button>
           <button onClick={replaceAll}>All</button>
-          <button className="close-search" onClick={() => { setSearchVisible(false); setSearchQuery(''); }}>&times;</button>
-        </div>
+          <button className="close-search" onClick={() => { setReplaceVisible(false); setSearchQuery(''); setReplaceQuery(''); }}>&times;</button>
+        </div>}
         <textarea
           ref={editorRef}
           spellCheck={false}
@@ -296,10 +377,15 @@ function App() {
           onChange={e => setMd(e.target.value)}
           onScroll={onEditorScroll}
           onKeyDown={onEditorKeyDown}
+          style={{
+            background: editorTheme.edBg || '#1e1e1e',
+            color: editorTheme.edColor || '#d4d4d4',
+            caretColor: editorTheme.edCaret || '#aeafad',
+          }}
         />
       </div>
 
-      <div className="divider" onMouseDown={(e) => {
+      <div className="divider" style={{ background: editorTheme.edBorder || '#333' }} onMouseDown={(e) => {
         isDragging.current = true;
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
@@ -350,15 +436,6 @@ function App() {
             </button>
             <div className="ctrl-sep" />
             <button className="ctrl-btn" onClick={() => window.print()} title="PDF">PDF</button>
-            <div className="ctrl-sep" />
-            <button className="ctrl-btn" onClick={() => setSearchVisible(v => {
-              if (v) { setSearchQuery(''); setReplaceQuery(''); }
-              return !v;
-            })} title="Find & Replace">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-              </svg>
-            </button>
           </div>
         </div>
         <div className="preview-content" ref={previewRef} style={{ background: theme.bg, '--print-bg': theme.bg }}>
@@ -408,6 +485,26 @@ function App() {
             onClick={() => { setListStyle(i); setListMenuVisible(false); }}
           >
             {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className={`theme-menu ${editorThemeMenuVisible ? 'visible' : ''}`}
+        ref={editorThemeMenuRef}
+        style={editorThemeMenuVisible && editorThemeBtnRef.current ? (() => {
+          const rect = editorThemeBtnRef.current.getBoundingClientRect();
+          return { top: rect.bottom + 4, left: rect.left };
+        })() : {}}
+      >
+        {THEMES.map(t => (
+          <button
+            key={t.name}
+            className={`theme-swatch ${editorTheme.cls === t.cls ? 'active' : ''}`}
+            onClick={() => { setEditorTheme(t); setEditorThemeMenuVisible(false); }}
+          >
+            <span className="theme-dot" style={{ background: t.edBg || t.bg }} />
+            {t.name}
           </button>
         ))}
       </div>
