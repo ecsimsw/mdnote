@@ -87,9 +87,35 @@ function App() {
     return THEMES.find(t => t.cls === cls) || DEFAULT_THEME;
   });
   const [fontSize, setFontSize] = useState(() => loadSetting('fontSize', 15.5));
-  const [lineHeight, setLineHeight] = useState(() => loadSetting('lineHeight', 1.8));
+  const [lineHeight, setLineHeight] = useState(() => loadSetting('lineHeight', 1.6));
   const [maxWidth, setMaxWidth] = useState(() => loadSetting('maxWidth', 100));
   const [topPadding, setTopPadding] = useState(() => loadSetting('topPadding', 40));
+  const [fontMenuVisible, setFontMenuVisible] = useState(false);
+  const [fontFamily, setFontFamily] = useState(() => loadSetting('fontFamily', 'Pretendard'));
+  const fontBtnRef = useRef(null);
+  const fontMenuRef = useRef(null);
+  const FONTS = [
+    { name: 'Gowun Batang', value: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap', lang: '한' },
+    { name: 'Gowun Dodum', value: "'Gowun Dodum', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap', lang: '한' },
+    { name: 'IBM Plex Sans KR', value: "'IBM Plex Sans KR', sans-serif", url: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;700&display=swap', lang: '한' },
+    { name: 'Nanum Gothic', value: "'Nanum Gothic', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap', lang: '한' },
+    { name: 'Nanum Myeongjo', value: "'Nanum Myeongjo', serif", url: 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap', lang: '한' },
+    { name: 'Noto Sans KR', value: "'Noto Sans KR', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap', lang: '한' },
+    { name: 'Pretendard', value: "'Pretendard', -apple-system, sans-serif", url: null, lang: '한' },
+    { name: 'Spoqa Han Sans', value: "'Spoqa Han Sans Neo', sans-serif", url: 'https://spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css', lang: '한' },
+    { name: 'D2Coding', value: "'D2Coding', monospace", url: 'https://cdn.jsdelivr.net/gh/joungkyun/font-d2coding/d2coding.css', lang: '한' },
+    { name: 'Crimson Text', value: "'Crimson Text', serif", url: 'https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Garamond', value: "'EB Garamond', serif", url: 'https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Inter', value: "'Inter', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Lora', value: "'Lora', serif", url: 'https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Merriweather', value: "'Merriweather', serif", url: 'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Playfair Display', value: "'Playfair Display', serif", url: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Roboto', value: "'Roboto', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Open Sans', value: "'Open Sans', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap', lang: 'E' },
+    { name: 'PT Serif', value: "'PT Serif', serif", url: 'https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Source Sans 3', value: "'Source Sans 3', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap', lang: 'E' },
+    { name: 'Source Serif 4', value: "'Source Serif 4', serif", url: 'https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;700&display=swap', lang: 'E' },
+  ];
   const [editorVisible, setEditorVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
@@ -140,6 +166,22 @@ function App() {
   useEffect(() => { saveSetting('lineHeight', lineHeight); }, [lineHeight]);
   useEffect(() => { saveSetting('maxWidth', maxWidth); }, [maxWidth]);
   useEffect(() => { saveSetting('topPadding', topPadding); }, [topPadding]);
+  useEffect(() => { saveSetting('fontFamily', fontFamily); }, [fontFamily]);
+
+  // Load Google Font
+  useEffect(() => {
+    const font = FONTS.find(f => f.name === fontFamily);
+    if (font && font.url) {
+      const id = 'gfont-' + fontFamily.replace(/\s/g, '-');
+      if (!document.getElementById(id)) {
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = font.url;
+        document.head.appendChild(link);
+      }
+    }
+  }, [fontFamily]);
   useEffect(() => { saveSetting('listStyle', listStyle); }, [listStyle]);
   useEffect(() => { saveSetting('customListChar', customListChar); }, [customListChar]);
   useEffect(() => { saveSetting('paneRatio', paneRatio); }, [paneRatio]);
@@ -306,6 +348,10 @@ function App() {
       if (editorThemeMenuRef.current && !editorThemeMenuRef.current.contains(e.target) &&
           editorThemeBtnRef.current && !editorThemeBtnRef.current.contains(e.target)) {
         setEditorThemeMenuVisible(false);
+      }
+      if (fontMenuRef.current && !fontMenuRef.current.contains(e.target) &&
+          fontBtnRef.current && !fontBtnRef.current.contains(e.target)) {
+        setFontMenuVisible(false);
       }
     };
     document.addEventListener('click', handler);
@@ -640,6 +686,10 @@ function App() {
           <a className="label" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
             style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>PdfViewer</a>
           <div className="header-controls">
+            <button className="ctrl-btn" ref={fontBtnRef}
+              onClick={() => setFontMenuVisible(v => !v)} title="Font"
+              style={{ fontSize: 13, fontFamily: 'serif' }}>F</button>
+            <div className="ctrl-sep" />
             <button className="ctrl-btn"
               onMouseDown={() => startHold(() => setFontSize(f => Math.max(8, f - 1)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>A&minus;</button>
@@ -714,11 +764,12 @@ function App() {
             style={{
               zoom: fontSize / 15.5,
               lineHeight: lineHeight,
-              '--spacing': lineHeight / 1.8,
+              '--spacing': lineHeight / 1.6,
               '--list-style': LIST_STYLES[listStyle].type,
               maxWidth: maxWidth + '%',
               margin: '0 auto',
               paddingTop: topPadding + 'px',
+              fontFamily: (FONTS.find(f => f.name === fontFamily) || FONTS[0]).value,
             }}
           />
         </div>
@@ -796,6 +847,35 @@ function App() {
             {t.name}
           </button>
         ))}
+      </div>
+
+      <div
+        className={`list-menu ${fontMenuVisible ? 'visible' : ''}`}
+        ref={fontMenuRef}
+        style={fontMenuVisible && fontBtnRef.current ? (() => {
+          const rect = fontBtnRef.current.getBoundingClientRect();
+          return { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+        })() : {}}
+      >
+        {['한', 'E'].map(lang => {
+          const fonts = FONTS.filter(f => f.lang === lang);
+          return [
+            <div key={`label-${lang}`} style={{
+              fontSize: 10, color: '#aaa', padding: '10px 14px 2px',
+              letterSpacing: 1, textTransform: 'uppercase',
+            }}>{lang === '한' ? 'kor' : 'eng'}</div>,
+            ...fonts.map(f => (
+              <button
+                key={f.name}
+                className={`list-option ${fontFamily === f.name ? 'active' : ''}`}
+                style={{ fontFamily: f.value, fontSize: 13 }}
+                onClick={() => { setFontFamily(f.name); setFontMenuVisible(false); }}
+              >
+                {f.name}
+              </button>
+            ))
+          ];
+        })}
       </div>
     </div>
   );
