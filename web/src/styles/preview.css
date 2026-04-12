@@ -15,7 +15,7 @@
 article {
   --spacing: 1;
   max-width: none;
-  padding: 32px 32px 96px;
+  padding: 40px 40px 96px;
   overflow: hidden;
 }
 article img {

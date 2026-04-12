@@ -69,6 +69,7 @@ function App() {
   // Apply theme to body
   useEffect(() => {
     document.body.className = theme.cls || '';
+    document.body.style.backgroundColor = theme.bg;
   }, [theme]);
 
   // Find matches
@@ -360,7 +361,7 @@ function App() {
             </button>
           </div>
         </div>
-        <div className="preview-content" ref={previewRef} style={{ background: theme.bg }}>
+        <div className="preview-content" ref={previewRef} style={{ background: theme.bg, '--print-bg': theme.bg }}>
           <article
             ref={contentRef}
             style={{
