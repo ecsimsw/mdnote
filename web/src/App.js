@@ -274,7 +274,8 @@ function App() {
     <div className="app">
       <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e' }}>
         <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
-          <span className="file-name" style={{ color: editorTheme.edHeaderColor || '#ccc' }}>Editor</span>
+          <a className="file-name" href="https://github.com/ecsimsw/mdviewer" target="_blank" rel="noopener noreferrer"
+            style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700 }}>MdEditor</a>
           <div className="header-controls">
             <button className="ctrl-btn" onClick={() => setSearchVisible(v => {
               if (v) { setSearchQuery(''); }
