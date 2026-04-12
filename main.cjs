@@ -49,7 +49,7 @@ function buildEditorHtml(rawMd, title) {
     .editor-pane {
       display: flex;
       flex-direction: column;
-      background: #1e1e1e;
+      background: #1e1e1e !important;
     }
 
     .editor-header {
@@ -57,7 +57,7 @@ function buildEditorHtml(rawMd, title) {
       align-items: center;
       height: 40px;
       padding: 0 16px;
-      background: #252526;
+      background: #252526 !important;
       border-bottom: 1px solid #333;
       flex-shrink: 0;
     }
@@ -82,8 +82,8 @@ function buildEditorHtml(rawMd, title) {
       border: none;
       outline: none;
       resize: none;
-      background: #1e1e1e;
-      color: #d4d4d4;
+      background: #1e1e1e !important;
+      color: #d4d4d4 !important;
       font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
       font-size: 14px;
       line-height: 1.5;
@@ -111,6 +111,9 @@ function buildEditorHtml(rawMd, title) {
       background: #f8f8f8;
       border-bottom: 1px solid #e5e5e5;
       flex-shrink: 0;
+      overflow: visible;
+      position: relative;
+      z-index: 100;
     }
 
     .preview-header .label {
@@ -284,6 +287,57 @@ function buildEditorHtml(rawMd, title) {
       min-width: 60px;
     }
 
+    /* Theme menu */
+    .theme-menu {
+      display: none;
+      position: fixed;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      padding: 6px;
+      z-index: 9999;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      width: 240px;
+    }
+
+    .theme-menu.visible {
+      display: grid;
+    }
+
+    .theme-swatch {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+      background: transparent;
+      color: #555;
+      transition: background 0.1s;
+    }
+
+    .theme-swatch:hover {
+      background: #f0f0f0;
+    }
+
+    .theme-swatch.active {
+      background: #e8e8e8;
+      font-weight: 600;
+    }
+
+    .theme-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
     mark.highlight {
       background: #fff3aa;
       color: inherit;
@@ -336,6 +390,10 @@ function buildEditorHtml(rawMd, title) {
         <button class="ctrl-btn" id="widthLabel" style="pointer-events:none;color:#aaa;font-size:11px">100%</button>
         <button class="ctrl-btn hold-btn" data-action="adjustWidth" data-delta="40" title="Wider">▷</button>
         <div class="ctrl-sep"></div>
+        <button class="ctrl-btn" id="themeBtn" onclick="toggleThemeMenu()" title="Theme">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        </button>
+        <div class="ctrl-sep"></div>
         <button class="ctrl-btn" onclick="downloadPdf()" title="Save as PDF">PDF</button>
         <div class="ctrl-sep"></div>
         <button class="ctrl-btn" onclick="toggleSearch()" title="Find & Replace">
@@ -347,6 +405,8 @@ function buildEditorHtml(rawMd, title) {
       <article id="content"></article>
     </div>
   </div>
+
+  <div class="theme-menu" id="themeMenu"></div>
 
   <script>
     var editor = document.getElementById('editor');
@@ -475,6 +535,7 @@ function buildEditorHtml(rawMd, title) {
         document.getElementById('matchInfo').textContent = '';
         document.getElementById('searchInput').value = '';
         document.getElementById('replaceInput').value = '';
+        renderPreview();
         editor.scrollTop = scrollPos;
       }
     }
@@ -627,6 +688,61 @@ function buildEditorHtml(rawMd, title) {
       clearTimeout(holdTimer);
       clearInterval(holdInterval);
     }
+
+    // Theme menu
+    var themes = [
+      { name: 'Light', cls: '', bg: '#fff' },
+      { name: 'Dark', cls: 'dark', bg: '#1a1a1a' },
+      { name: 'Space', cls: 'space', bg: '#0d1117' },
+      { name: 'Spring', cls: 'spring', bg: '#fef8f9' },
+      { name: 'Nugget', cls: 'nugget', bg: '#f5f0e8' },
+      { name: 'Forest', cls: 'forest', bg: '#f0f4ee' },
+      { name: 'Sky', cls: 'sky', bg: '#f0f6fc' },
+      { name: 'Wine', cls: 'wine', bg: '#200a10' },
+      { name: 'Lemon', cls: 'lemon', bg: '#fdfcf0' },
+      { name: 'Grimace', cls: 'grimace', bg: '#f5f0fa' },
+      { name: 'Mocha', cls: 'mocha', bg: '#1c1410' },
+      { name: 'Sunset', cls: 'sunset', bg: '#1a1018' },
+    ];
+    var currentTheme = '';
+    var themeMenuEl = document.getElementById('themeMenu');
+    themes.forEach(function(t) {
+      var btn = document.createElement('button');
+      btn.className = 'theme-swatch' + (t.cls === currentTheme ? ' active' : '');
+      btn.innerHTML = '<span class="theme-dot" style="background:' + t.bg + '"></span>' + t.name;
+      btn.addEventListener('click', function() {
+        currentTheme = t.cls;
+        // Apply theme class to body so cli.mjs CSS selectors work
+        document.body.className = t.cls || '';
+        // Mark active
+        themeMenuEl.querySelectorAll('.theme-swatch').forEach(function(s) { s.classList.remove('active'); });
+        btn.classList.add('active');
+        // Update preview background
+        document.querySelector('.preview-pane').style.background = t.bg;
+        document.getElementById('preview').style.background = t.bg;
+        themeMenuEl.classList.remove('visible');
+      });
+      themeMenuEl.appendChild(btn);
+    });
+
+    function toggleThemeMenu() {
+      if (themeMenuEl.classList.contains('visible')) {
+        themeMenuEl.classList.remove('visible');
+        return;
+      }
+      var btn = document.getElementById('themeBtn');
+      var rect = btn.getBoundingClientRect();
+      themeMenuEl.style.top = (rect.bottom + 4) + 'px';
+      themeMenuEl.style.right = (window.innerWidth - rect.right) + 'px';
+      themeMenuEl.classList.add('visible');
+    }
+
+    // Close theme menu on outside click
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.theme-menu') && !e.target.closest('#themeBtn')) {
+        themeMenuEl.classList.remove('visible');
+      }
+    });
 
     // Cmd+F shortcut
     document.addEventListener('keydown', function(e) {
