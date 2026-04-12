@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
@@ -77,6 +77,7 @@ function buildEditorHtml(rawMd, title) {
 
     .editor-pane textarea {
       flex: 1;
+      min-height: 0;
       width: 100%;
       border: none;
       outline: none;
@@ -154,6 +155,146 @@ function buildEditorHtml(rawMd, title) {
 
     .preview-content .toolbar,
     .preview-content .toc { display: none; }
+
+    /* Header buttons */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: auto;
+    }
+
+    .ctrl-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s;
+    }
+
+    .editor-header .ctrl-btn {
+      color: #999;
+    }
+    .editor-header .ctrl-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #ccc;
+    }
+
+    .preview-header .ctrl-btn {
+      color: #888;
+    }
+    .preview-header .ctrl-btn:hover {
+      background: rgba(0,0,0,0.06);
+      color: #555;
+    }
+
+    .ctrl-btn .shortcut {
+      font-size: 10px;
+      opacity: 0.5;
+      margin-left: 2px;
+    }
+
+    .ctrl-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .preview-header .ctrl-sep {
+      width: 1px;
+      height: 16px;
+      background: #ddd;
+      margin: 0 4px;
+    }
+
+    /* Editor search bar */
+    .search-bar {
+      display: none;
+      padding: 8px 16px;
+      background: #252526;
+      border-bottom: 1px solid #333;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .search-bar.visible {
+      display: flex;
+    }
+
+    .search-bar input {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #d4d4d4;
+      font-size: 13px;
+      font-family: inherit;
+      padding: 4px 8px;
+      outline: none;
+      width: 200px;
+    }
+
+    .search-bar input:focus {
+      border-color: #007aff;
+    }
+
+    .search-bar .search-label {
+      font-size: 12px;
+      color: #888;
+      flex-shrink: 0;
+    }
+
+    .search-bar button {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #ccc;
+      font-size: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .search-bar button:hover {
+      background: #4c4c4c;
+    }
+
+    .search-bar .close-search {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+      margin-left: auto;
+    }
+
+    .search-bar .close-search:hover {
+      color: #ccc;
+    }
+
+    .search-match-info {
+      font-size: 11px;
+      color: #888;
+      min-width: 60px;
+    }
+
+    mark.highlight {
+      background: #fff3aa;
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+
+    mark.highlight-current {
+      background: #ff9632;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -162,12 +303,45 @@ function buildEditorHtml(rawMd, title) {
       <svg class="file-icon" viewBox="0 0 24 24"><path d="M20.56 18H3.44C2.65 18 2 17.37 2 16.59V7.41C2 6.63 2.65 6 3.44 6h17.12C21.35 6 22 6.63 22 7.41v9.18c0 .78-.65 1.41-1.44 1.41zM11.5 9.5L7.5 12l4 2.5v-5z" fill="#519aba"/></svg>
       <span class="file-name">${title}.md</span>
     </div>
+    <div class="search-bar" id="searchBar">
+      <span class="search-label">Find</span>
+      <input type="text" id="searchInput" placeholder="Search...">
+      <span class="search-match-info" id="matchInfo"></span>
+      <button onclick="findPrev()" title="Previous">&lsaquo;</button>
+      <button onclick="findNext()" title="Next">&rsaquo;</button>
+      <span class="search-label" style="margin-left:8px">Replace</span>
+      <input type="text" id="replaceInput" placeholder="Replace with...">
+      <button onclick="replaceCurrent()">Replace</button>
+      <button onclick="replaceAll()">All</button>
+      <button class="close-search" onclick="toggleSearch()">&times;</button>
+    </div>
     <textarea id="editor" spellcheck="false">${escapedMd}</textarea>
   </div>
   <div class="divider" id="divider"></div>
   <div class="pane preview-pane">
     <div class="preview-header">
       <span class="label">Preview</span>
+      <div class="header-controls">
+        <button class="ctrl-btn hold-btn" data-action="adjustFontSize" data-delta="-1" title="Decrease font size">A−</button>
+        <button class="ctrl-btn hold-btn" data-action="adjustFontSize" data-delta="1" title="Increase font size">A+</button>
+        <div class="ctrl-sep"></div>
+        <button class="ctrl-btn hold-btn" data-action="adjustLineHeight" data-delta="-0.1" title="Decrease line height">
+          <svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="2" width="12" height="1.5"/><rect x="1" y="6.5" width="12" height="1.5"/><rect x="1" y="11" width="12" height="1.5"/></svg>
+        </button>
+        <button class="ctrl-btn hold-btn" data-action="adjustLineHeight" data-delta="0.1" title="Increase line height">
+          <svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="12" height="1.5"/><rect x="1" y="6.25" width="12" height="1.5"/><rect x="1" y="11.5" width="12" height="1.5"/></svg>
+        </button>
+        <div class="ctrl-sep"></div>
+        <button class="ctrl-btn hold-btn" data-action="adjustWidth" data-delta="-40" title="Narrower">◁</button>
+        <button class="ctrl-btn" id="widthLabel" style="pointer-events:none;color:#aaa;font-size:11px">100%</button>
+        <button class="ctrl-btn hold-btn" data-action="adjustWidth" data-delta="40" title="Wider">▷</button>
+        <div class="ctrl-sep"></div>
+        <button class="ctrl-btn" onclick="downloadPdf()" title="Save as PDF">PDF</button>
+        <div class="ctrl-sep"></div>
+        <button class="ctrl-btn" onclick="toggleSearch()" title="Find & Replace">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </button>
+      </div>
     </div>
     <div class="preview-content" id="preview">
       <article id="content"></article>
@@ -198,7 +372,19 @@ function buildEditorHtml(rawMd, title) {
       });
     }
 
-    editor.addEventListener('input', renderPreview);
+    // Auto-save with debounce
+    var saveTimer = null;
+    function autoSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function() {
+        window.mdviewer.saveFile(editor.value);
+      }, 300);
+    }
+
+    editor.addEventListener('input', function() {
+      renderPreview();
+      autoSave();
+    });
     renderPreview();
 
     // Draggable divider
@@ -243,6 +429,212 @@ function buildEditorHtml(rawMd, title) {
         renderPreview();
       }
     });
+
+    // === Preview controls ===
+    var currentFontSize = 15.5;
+    var currentLineHeight = 1.8;
+    var currentMaxWidth = 100; // percent
+
+    function adjustFontSize(delta) {
+      currentFontSize = Math.max(8, Math.min(100, currentFontSize + delta));
+      document.getElementById('preview').style.zoom = currentFontSize / 15.5;
+    }
+
+    function adjustLineHeight(delta) {
+      currentLineHeight = Math.max(1.2, Math.min(3, currentLineHeight + delta));
+      content.querySelectorAll('p, li, td, th, blockquote, pre, code, h1, h2, h3, h4').forEach(function(el) {
+        el.style.lineHeight = currentLineHeight;
+      });
+    }
+
+    function adjustWidth(delta) {
+      currentMaxWidth = Math.max(40, Math.min(100, currentMaxWidth + (delta / 40 * 10)));
+      content.style.maxWidth = currentMaxWidth + '%';
+      content.style.margin = '0 auto';
+      document.getElementById('widthLabel').textContent = Math.round(currentMaxWidth) + '%';
+    }
+
+    function downloadPdf() {
+      window.mdviewer.savePdf();
+    }
+
+    // === Editor search & replace ===
+    var searchMatches = [];
+    var currentMatch = -1;
+
+    function toggleSearch() {
+      var bar = document.getElementById('searchBar');
+      var scrollPos = editor.scrollTop;
+      bar.classList.toggle('visible');
+      if (bar.classList.contains('visible')) {
+        editor.scrollTop = scrollPos;
+        document.getElementById('searchInput').focus();
+      } else {
+        searchMatches = [];
+        currentMatch = -1;
+        document.getElementById('matchInfo').textContent = '';
+        document.getElementById('searchInput').value = '';
+        document.getElementById('replaceInput').value = '';
+        editor.scrollTop = scrollPos;
+      }
+    }
+
+    function findMatches() {
+      var query = document.getElementById('searchInput').value;
+      searchMatches = [];
+      currentMatch = -1;
+      if (!query) {
+        document.getElementById('matchInfo').textContent = '';
+        renderPreview();
+        return;
+      }
+      var text = editor.value;
+      var lower = text.toLowerCase();
+      var q = query.toLowerCase();
+      var idx = 0;
+      while ((idx = lower.indexOf(q, idx)) !== -1) {
+        searchMatches.push(idx);
+        idx += q.length;
+      }
+      document.getElementById('matchInfo').textContent = searchMatches.length + ' found';
+      if (searchMatches.length > 0) {
+        currentMatch = 0;
+      }
+      highlightInPreview();
+    }
+
+    function selectMatch() {
+      if (currentMatch < 0 || currentMatch >= searchMatches.length) return;
+      var query = document.getElementById('searchInput').value;
+      var pos = searchMatches[currentMatch];
+      document.getElementById('matchInfo').textContent = (currentMatch + 1) + '/' + searchMatches.length;
+      highlightInPreview();
+      // Select in editor — temporarily readonly to prevent Enter from inserting
+      editor.readOnly = true;
+      editor.focus();
+      editor.setSelectionRange(pos, pos + query.length);
+      var linesBefore = editor.value.substring(0, pos).split('\\n').length;
+      var lineH = parseFloat(getComputedStyle(editor).lineHeight);
+      editor.scrollTop = (linesBefore - 3) * lineH;
+      setTimeout(function() {
+        editor.readOnly = false;
+        document.getElementById('searchInput').focus();
+      }, 50);
+    }
+
+    function highlightInPreview() {
+      var query = document.getElementById('searchInput').value;
+      // Re-render then highlight
+      content.innerHTML = marked.parse(editor.value);
+      if (!query) return;
+      var walk = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+      var nodes = [];
+      while (walk.nextNode()) nodes.push(walk.currentNode);
+      var lowerQ = query.toLowerCase();
+      var matchIdx = 0;
+      nodes.forEach(function(node) {
+        if (node.parentNode.tagName === 'SCRIPT' || node.parentNode.tagName === 'STYLE') return;
+        var text = node.textContent;
+        var lowerText = text.toLowerCase();
+        var parts = [];
+        var lastIdx = 0;
+        var i;
+        while ((i = lowerText.indexOf(lowerQ, lastIdx)) !== -1) {
+          if (i > lastIdx) parts.push(document.createTextNode(text.substring(lastIdx, i)));
+          var mark = document.createElement('mark');
+          mark.className = matchIdx === currentMatch ? 'highlight highlight-current' : 'highlight';
+          mark.textContent = text.substring(i, i + query.length);
+          parts.push(mark);
+          matchIdx++;
+          lastIdx = i + query.length;
+        }
+        if (parts.length > 0) {
+          if (lastIdx < text.length) parts.push(document.createTextNode(text.substring(lastIdx)));
+          var span = document.createElement('span');
+          parts.forEach(function(p) { span.appendChild(p); });
+          node.parentNode.replaceChild(span, node);
+        }
+      });
+      // Scroll to current match
+      var current = content.querySelector('.highlight-current');
+      if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function findNext() {
+      if (searchMatches.length === 0) { findMatches(); return; }
+      currentMatch = (currentMatch + 1) % searchMatches.length;
+      selectMatch();
+    }
+
+    function findPrev() {
+      if (searchMatches.length === 0) { findMatches(); return; }
+      currentMatch = (currentMatch - 1 + searchMatches.length) % searchMatches.length;
+      selectMatch();
+    }
+
+    function replaceCurrent() {
+      if (currentMatch < 0 || currentMatch >= searchMatches.length) return;
+      var query = document.getElementById('searchInput').value;
+      var replace = document.getElementById('replaceInput').value;
+      var pos = searchMatches[currentMatch];
+      editor.value = editor.value.substring(0, pos) + replace + editor.value.substring(pos + query.length);
+      renderPreview();
+      autoSave();
+      // Flash clean preview, then re-highlight
+      setTimeout(findMatches, 500);
+    }
+
+    function replaceAll() {
+      var query = document.getElementById('searchInput').value;
+      var replace = document.getElementById('replaceInput').value;
+      if (!query) return;
+      var escaped = query.replace(/[-\\/\\\\^$*+?.()|[\\]]/g, '\\\\$&');
+      var regex = new RegExp(escaped, 'gi');
+      var count = (editor.value.match(regex) || []).length;
+      editor.value = editor.value.replace(regex, replace);
+      renderPreview();
+      autoSave();
+      searchMatches = [];
+      currentMatch = -1;
+      document.getElementById('matchInfo').textContent = count + ' replaced';
+    }
+
+    document.getElementById('searchInput').addEventListener('input', findMatches);
+    document.getElementById('searchInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? findPrev() : findNext(); }
+      if (e.key === 'Escape') toggleSearch();
+    });
+
+    // Hold-to-repeat buttons
+    var holdTimer = null;
+    var holdInterval = null;
+    var actions = { adjustFontSize: adjustFontSize, adjustLineHeight: adjustLineHeight, adjustWidth: adjustWidth };
+    document.querySelectorAll('.hold-btn').forEach(function(btn) {
+      var fn = actions[btn.dataset.action];
+      var delta = parseFloat(btn.dataset.delta);
+      function fire() { fn(delta); }
+      btn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        fire();
+        holdTimer = setTimeout(function() {
+          holdInterval = setInterval(fire, 80);
+        }, 400);
+      });
+      btn.addEventListener('mouseup', stopHold);
+      btn.addEventListener('mouseleave', stopHold);
+    });
+    function stopHold() {
+      clearTimeout(holdTimer);
+      clearInterval(holdInterval);
+    }
+
+    // Cmd+F shortcut
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        toggleSearch();
+      }
+    });
   </script>
 </body>
 </html>`;
@@ -258,6 +650,7 @@ function createWindow(filePath) {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -278,6 +671,29 @@ function createWindow(filePath) {
   fs.writeFileSync(tmpFile, html);
   win.loadFile(tmpFile);
   win.setTitle(baseName);
+
+  // PDF export
+  ipcMain.handle("save-pdf", async (event) => {
+    if (event.sender !== win.webContents) return;
+    const { canceled, filePath: savePath } = await dialog.showSaveDialog(win, {
+      defaultPath: baseName + ".pdf",
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+    });
+    if (canceled) return;
+    const pdfData = await win.webContents.printToPDF({
+      printBackground: true,
+      pageSize: "A4",
+    });
+    fs.writeFileSync(savePath, pdfData);
+  });
+
+  // Auto-save: write back to original file
+  ipcMain.on("save-file", (event, content) => {
+    if (event.sender === win.webContents) {
+      fs.writeFileSync(filePath, content, "utf-8");
+    }
+  });
+
   win.on("closed", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
