@@ -30,12 +30,29 @@ console.log("Hello, world!");
 | B    | 2     |
 `;
 
+function loadSetting(key, fallback) {
+  try {
+    const v = localStorage.getItem('mdeditor_' + key);
+    return v !== null ? JSON.parse(v) : fallback;
+  } catch { return fallback; }
+}
+
+function saveSetting(key, value) {
+  localStorage.setItem('mdeditor_' + key, JSON.stringify(value));
+}
+
+const DEFAULT_THEME = THEMES.find(t => t.cls === '') || THEMES[0];
+const DEFAULT_EDITOR_THEME = THEMES.find(t => t.cls === 'dark') || THEMES[1];
+
 function App() {
-  const [md, setMd] = useState(SAMPLE_MD);
-  const [theme, setTheme] = useState({ cls: '', bg: '#fff' });
-  const [fontSize, setFontSize] = useState(15.5);
-  const [lineHeight, setLineHeight] = useState(1.8);
-  const [maxWidth, setMaxWidth] = useState(100);
+  const [md, setMd] = useState(() => loadSetting('md', SAMPLE_MD));
+  const [theme, setTheme] = useState(() => {
+    const cls = loadSetting('theme', '');
+    return THEMES.find(t => t.cls === cls) || DEFAULT_THEME;
+  });
+  const [fontSize, setFontSize] = useState(() => loadSetting('fontSize', 15.5));
+  const [lineHeight, setLineHeight] = useState(() => loadSetting('lineHeight', 1.8));
+  const [maxWidth, setMaxWidth] = useState(() => loadSetting('maxWidth', 100));
   const [searchVisible, setSearchVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,10 +60,14 @@ function App() {
   const [matches, setMatches] = useState([]);
   const [currentMatch, setCurrentMatch] = useState(-1);
   const [themeMenuVisible, setThemeMenuVisible] = useState(false);
-  const [editorTheme, setEditorTheme] = useState({ name: 'Dark', cls: 'dark', bg: '#1a1a1a', edBg: '#1e1e1e', edColor: '#d4d4d4', edHeaderBg: '#252526', edHeaderColor: '#ccc', edBorder: '#333', edCaret: '#aeafad' });
+  const [editorTheme, setEditorTheme] = useState(() => {
+    const cls = loadSetting('editorTheme', 'dark');
+    return THEMES.find(t => t.cls === cls) || DEFAULT_EDITOR_THEME;
+  });
   const [editorThemeMenuVisible, setEditorThemeMenuVisible] = useState(false);
   const [listMenuVisible, setListMenuVisible] = useState(false);
-  const [listStyle, setListStyle] = useState(0);
+  const [listStyle, setListStyle] = useState(() => loadSetting('listStyle', 0));
+  const [paneRatio, setPaneRatio] = useState(() => loadSetting('paneRatio', 50));
   const LIST_STYLES = [
     { label: '•', type: 'disc' },
     { label: '–', type: '"–  "' },
@@ -58,7 +79,6 @@ function App() {
     { label: 'i.', type: 'lower-roman' },
     { label: '김', type: 'kim-jin-hwan' },
   ];
-  const [paneRatio, setPaneRatio] = useState(50);
 
   const editorRef = useRef(null);
   const previewRef = useRef(null);
@@ -70,6 +90,19 @@ function App() {
   const editorThemeBtnRef = useRef(null);
   const editorThemeMenuRef = useRef(null);
   const isDragging = useRef(false);
+
+  // Persist settings to localStorage
+  useEffect(() => { saveSetting('theme', theme.cls); }, [theme]);
+  useEffect(() => { saveSetting('editorTheme', editorTheme.cls); }, [editorTheme]);
+  useEffect(() => { saveSetting('fontSize', fontSize); }, [fontSize]);
+  useEffect(() => { saveSetting('lineHeight', lineHeight); }, [lineHeight]);
+  useEffect(() => { saveSetting('maxWidth', maxWidth); }, [maxWidth]);
+  useEffect(() => { saveSetting('listStyle', listStyle); }, [listStyle]);
+  useEffect(() => { saveSetting('paneRatio', paneRatio); }, [paneRatio]);
+  useEffect(() => {
+    const timer = setTimeout(() => saveSetting('md', md), 500);
+    return () => clearTimeout(timer);
+  }, [md]);
 
   // Apply theme to body
   useEffect(() => {
