@@ -1,0 +1,74 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+article {
+  max-width: none;
+  padding: 32px 32px 96px;
+  overflow: hidden;
+}
+article img {
+  max-width: 100%;
+  height: auto;
+}
+article > :first-child { margin-top: 0; }
+
+h1 {
+  font-size: 22px; font-weight: 700; line-height: 1.35;
+  color: #111; margin: 52px 0 16px; letter-spacing: -0.3px;
+  border-bottom: 1px solid #eee; padding-bottom: 12px;
+}
+h2 { font-size: 19px; font-weight: 700; margin: 44px 0 12px; color: #111; }
+h3 { font-size: 17px; font-weight: 700; margin: 36px 0 8px; color: #111; }
+h4 { font-size: 15px; font-weight: 600; margin: 28px 0 6px; color: #555; }
+
+p { margin-bottom: 4px; font-size: 15.5px; color: #333; word-break: keep-all; line-height: 1.8; }
+a { color: inherit; }
+a:visited { color: inherit; }
+
+hr { border: none; border-top: 1px solid #eee; margin: 40px 0; }
+ul, ol { margin: 14px 0; padding-left: 22px; }
+li { margin-bottom: 6px; font-size: 15.5px; color: #333; line-height: 1.8; }
+strong { color: #111; }
+
+code {
+  font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+  background: #f3f3f3; padding: 1px 5px; border-radius: 3px;
+  font-size: 0.88em; color: #333;
+}
+
+pre {
+  position: relative;
+  background: #f7f7f7;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 18px 20px;
+  margin: 24px 0;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+pre code {
+  background: none; padding: 0; border-radius: 0;
+  font-size: inherit; color: #333;
+}
+
+.copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.05); border: none; border-radius: 6px;
+  padding: 4px 10px; font-size: 12px; color: #8e8e93;
+  cursor: pointer; opacity: 0; transition: opacity 0.15s; font-family: inherit;
+}
+pre:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { background: rgba(0,0,0,0.1); }
+
+blockquote {
+  border-left: 2px solid #ddd;
+  padding: 10px 18px; margin: 24px 0; color: #666; font-size: 14px;
+}
+
+table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; color: #333; }
+th, td { border: 1px solid #e0e0e0; padding: 10px 14px; text-align: left; line-height: 1.6; }
+th { background: #f7f7f7; font-weight: 600; }
+tr:nth-child(even) td { background: #fafafa; }
+
+mark.highlight { background: #fff3aa; color: inherit; border-radius: 2px; padding: 0 1px; }
+mark.highlight-current { background: #ff9632; color: #fff; }

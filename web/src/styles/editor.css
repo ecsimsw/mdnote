@@ -1,0 +1,123 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #root { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #1e1e1e;
+}
+
+.app { display: flex; height: 100%; }
+
+.pane { width: 50%; height: 100%; }
+
+/* Editor */
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+}
+
+.editor-header {
+  display: flex; align-items: center; height: 40px; padding: 0 16px;
+  background: #252526; border-bottom: 1px solid #333; flex-shrink: 0;
+}
+.editor-header .file-name { font-size: 13px; color: #ccc; font-weight: 400; }
+
+.editor-pane textarea {
+  flex: 1; min-height: 0; width: 100%;
+  border: none; outline: none; resize: none;
+  background: #1e1e1e; color: #d4d4d4;
+  font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+  font-size: 14px; line-height: 1.5;
+  padding: 16px 20px; tab-size: 2; caret-color: #aeafad;
+}
+.editor-pane textarea::selection { background: #264f78; }
+
+/* Preview */
+.preview-pane {
+  display: flex; flex-direction: column; background: #fff;
+}
+
+.preview-header {
+  display: flex; align-items: center; height: 40px; padding: 0 16px;
+  background: #f8f8f8; border-bottom: 1px solid #e5e5e5;
+  flex-shrink: 0; position: relative; z-index: 100;
+}
+.preview-header .label { font-size: 13px; color: #888; font-weight: 500; }
+
+.preview-content { flex: 1; overflow-y: auto; }
+
+/* Divider */
+.divider {
+  width: 1px; background: #333; cursor: col-resize;
+  position: relative; flex-shrink: 0;
+}
+.divider::after {
+  content: ''; position: absolute; top: 0; left: -3px; width: 7px; height: 100%;
+}
+.divider:hover, .divider.dragging { background: #007aff; width: 2px; }
+
+/* Controls */
+.header-controls {
+  display: flex; align-items: center; gap: 2px; margin-left: auto;
+}
+
+.ctrl-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px; border-radius: 4px; font-size: 12px;
+  font-family: inherit; display: flex; align-items: center;
+  gap: 4px; transition: background 0.15s; color: #888;
+}
+.ctrl-btn:hover { background: rgba(0,0,0,0.06); color: #555; }
+.ctrl-btn svg { width: 14px; height: 14px; }
+
+.ctrl-sep { width: 1px; height: 16px; background: #ddd; margin: 0 4px; }
+
+/* Search bar */
+.search-bar {
+  display: none; padding: 8px 16px; background: #252526;
+  border-bottom: 1px solid #333; gap: 8px; align-items: center; flex-shrink: 0;
+}
+.search-bar.visible { display: flex; }
+
+.search-bar input {
+  background: #3c3c3c; border: 1px solid #555; border-radius: 4px;
+  color: #d4d4d4; font-size: 13px; font-family: inherit;
+  padding: 4px 8px; outline: none; width: 200px;
+}
+.search-bar input:focus { border-color: #007aff; }
+.search-bar .search-label { font-size: 12px; color: #888; flex-shrink: 0; }
+.search-bar button {
+  background: #3c3c3c; border: 1px solid #555; border-radius: 4px;
+  color: #ccc; font-size: 12px; padding: 4px 10px; cursor: pointer; font-family: inherit;
+}
+.search-bar button:hover { background: #4c4c4c; }
+.search-bar .close-search {
+  background: none; border: none; color: #888; font-size: 16px;
+  cursor: pointer; padding: 2px 6px; margin-left: auto;
+}
+.search-bar .close-search:hover { color: #ccc; }
+.search-match-info { font-size: 11px; color: #888; min-width: 60px; }
+
+/* Theme menu */
+.theme-menu {
+  display: none; position: fixed; background: #fff;
+  border: 1px solid #e0e0e0; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  padding: 6px; z-index: 9999;
+  grid-template-columns: repeat(3, 1fr); gap: 4px; width: 240px;
+}
+.theme-menu.visible { display: grid; }
+
+.theme-swatch {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  border: none; border-radius: 6px; cursor: pointer;
+  font-size: 11px; font-family: inherit; background: transparent;
+  color: #555; transition: background 0.1s;
+}
+.theme-swatch:hover { background: #f0f0f0; }
+.theme-swatch.active { background: #e8e8e8; font-weight: 600; }
+
+.theme-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1);
+}
