@@ -16,7 +16,7 @@ body {
 }
 
 .editor-header {
-  display: flex; align-items: center; height: 40px; padding: 0 16px;
+  display: flex; align-items: center; height: 46px; padding: 0 16px;
   border-bottom: 1px solid; flex-shrink: 0;
 }
 .editor-header .file-name { font-size: 13px; color: #ccc; font-weight: 400; }
@@ -36,7 +36,7 @@ body {
 }
 
 .preview-header {
-  display: flex; align-items: center; height: 40px; padding: 0 16px;
+  display: flex; align-items: center; height: 46px; padding: 0 16px;
   background: #f8f8f8; border-bottom: 1px solid #e5e5e5;
   flex-shrink: 0; position: relative; z-index: 100;
 }
@@ -74,14 +74,14 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
 
 .ctrl-btn {
   background: none; border: none; cursor: pointer;
-  padding: 4px 8px; border-radius: 4px; font-size: 12px;
+  padding: 5px 9px; border-radius: 4px; font-size: 13px;
   font-family: inherit; display: flex; align-items: center;
   gap: 4px; transition: background 0.15s; color: #888;
 }
 .ctrl-btn:hover { background: rgba(0,0,0,0.06); color: #555; }
-.ctrl-btn svg { width: 14px; height: 14px; }
+.ctrl-btn svg { width: 16px; height: 16px; }
 
-.ctrl-sep { width: 1px; height: 16px; background: #ddd; margin: 0 4px; }
+.ctrl-sep { width: 1px; height: 18px; background: #ddd; margin: 0 5px; }
 
 /* Markdown toolbar */
 .md-toolbar {
@@ -90,7 +90,7 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
   padding: 6px 16px;
   gap: 4px;
   flex-shrink: 0;
-  min-height: 36px;
+  min-height: 40px;
 }
 
 .md-toolbar button {
@@ -126,7 +126,7 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
 .search-bar {
   display: none; padding: 6px 16px; background: #252526;
   border-bottom: 1px solid #333; gap: 4px; align-items: center; flex-shrink: 0;
-  min-height: 36px;
+  min-height: 40px;
 }
 .search-bar.visible { display: flex; }
 
