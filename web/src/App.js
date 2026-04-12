@@ -433,8 +433,15 @@ function App() {
           <a className="file-name" href="https://github.com/ecsimsw/mdviewer" target="_blank" rel="noopener noreferrer"
             style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700 }}>MdEditor</a>
           <div className="header-controls">
-            <button className="ctrl-btn" onClick={() => setEditorVisible(v => !v)} title="Toggle editor"
-              style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: editorVisible ? 1 : 0.4 }}>
+            <button className="ctrl-btn" onClick={() => {
+              setEditorVisible(v => !v);
+              setSearchVisible(false);
+              setReplaceVisible(false);
+
+              setSearchQuery('');
+              setReplaceQuery('');
+            }} title="Toggle editor"
+              style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: editorVisible && !searchVisible && !replaceVisible ? 1 : 0.4 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                 <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
               </svg>
@@ -445,11 +452,15 @@ function App() {
             <button className="ctrl-btn" onClick={redo} title="Redo"
               style={{ color: editorTheme.edHeaderColor || '#ccc' }}>↪</button>
             <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
-            <button className="ctrl-btn" onClick={() => setSearchVisible(v => {
-              if (v) { setSearchQuery(''); }
+            <button className="ctrl-btn" onClick={() => {
+              setSearchVisible(v => {
+                if (v) { setSearchQuery(''); }
+                return !v;
+              });
               setReplaceVisible(false);
-              return !v;
-            })} title="Find"
+              setEditorVisible(false);
+
+            }} title="Find"
               style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                 <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -459,9 +470,11 @@ function App() {
             <button className="ctrl-btn" onClick={() => {
               setReplaceVisible(v => {
                 if (v) { setSearchQuery(''); setReplaceQuery(''); }
-                setSearchVisible(false);
                 return !v;
               });
+              setSearchVisible(false);
+              setEditorVisible(false);
+
             }} title="Replace"
               style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
@@ -491,8 +504,8 @@ function App() {
             </button>
           </div>
         </div>
-        {editorVisible && <div className="md-toolbar" style={{
-          background: editorTheme.edBg || '#1e1e1e',
+        {editorVisible && !searchVisible && !replaceVisible && <div className="md-toolbar" style={{
+          background: editorTheme.edHeaderBg || '#252526',
           borderBottom: `1px solid ${editorTheme.edBorder || '#333'}`,
           color: editorTheme.edHeaderColor || '#ccc',
         }}>
@@ -543,14 +556,14 @@ function App() {
             '--sb-btn-color': editorTheme.edColor || '#ccc',
             '--sb-label-color': editorTheme.edHeaderColor || '#888',
           }}>
-          <span className="search-label">Find</span>
+
           <input
             type="text" placeholder="Search..." value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={onSearchKeyDown}
           />
-          <button onClick={findPrev} title="Previous">&lsaquo;</button>
-          <button onClick={findNext} title="Next">&rsaquo;</button>
+          <button onClick={findPrev} title="Previous" style={{ width: 26, height: 26, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&lsaquo;</button>
+          <button onClick={findNext} title="Next" style={{ width: 26, height: 26, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&rsaquo;</button>
           <span className="search-match-info">
             {matches.length > 0 && currentMatch >= 0
               ? `${currentMatch + 1}/${matches.length}`
@@ -578,8 +591,8 @@ function App() {
             type="text" placeholder="Replace..." value={replaceQuery}
             onChange={e => setReplaceQuery(e.target.value)}
           />
-          <button onClick={replaceCurrent}>Replace</button>
-          <button onClick={replaceAll}>All</button>
+          <button onClick={replaceCurrent} style={{ opacity: 0.6, fontSize: 11 }}>Replace</button>
+          <button onClick={replaceAll} style={{ opacity: 0.6, fontSize: 11 }}>All</button>
           <button className="close-search" onClick={() => { setReplaceVisible(false); setSearchQuery(''); setReplaceQuery(''); }}>&times;</button>
         </div>}
         <textarea
@@ -625,13 +638,20 @@ function App() {
               <svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="12" height="1.5"/><rect x="1" y="6.25" width="12" height="1.5"/><rect x="1" y="11.5" width="12" height="1.5"/></svg>
             </button>
             <div className="ctrl-sep" />
-            <button className="ctrl-btn"
+            <button className="ctrl-btn" title="Narrower"
               onMouseDown={() => startHold(() => setMaxWidth(w => Math.max(40, w - 10)))}
-              onMouseUp={stopHold} onMouseLeave={stopHold}>{'\u25BD'}</button>
-            <span className="ctrl-btn" style={{ pointerEvents: 'none', color: '#aaa', fontSize: 11 }}>{Math.round(maxWidth)}%</span>
-            <button className="ctrl-btn"
+              onMouseUp={stopHold} onMouseLeave={stopHold}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <path d="M18 12H6"/><path d="M14 8l4 4-4 4"/><path d="M10 8l-4 4 4 4"/>
+              </svg>
+            </button>
+            <button className="ctrl-btn" title="Wider"
               onMouseDown={() => startHold(() => setMaxWidth(w => Math.min(100, w + 10)))}
-              onMouseUp={stopHold} onMouseLeave={stopHold}>{'\u25B3'}</button>
+              onMouseUp={stopHold} onMouseLeave={stopHold}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <path d="M18 12H6"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/>
+              </svg>
+            </button>
             <div className="ctrl-sep" />
             <button className="ctrl-btn" ref={listBtnRef}
               onClick={() => setListMenuVisible(v => !v)}
