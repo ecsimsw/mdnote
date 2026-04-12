@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
 import THEMES from './themes';
 import './styles/editor.css';
@@ -45,7 +45,43 @@ const DEFAULT_THEME = THEMES.find(t => t.cls === '') || THEMES[0];
 const DEFAULT_EDITOR_THEME = THEMES.find(t => t.cls === 'dark') || THEMES[1];
 
 function App() {
-  const [md, setMd] = useState(() => loadSetting('md', SAMPLE_MD));
+  const [md, setMdRaw] = useState(() => loadSetting('md', SAMPLE_MD));
+  const undoStack = useRef([]);
+  const redoStack = useRef([]);
+  const isUndoRedo = useRef(false);
+
+  const setMd = useCallback((newVal) => {
+    setMdRaw(prev => {
+      if (!isUndoRedo.current) {
+        undoStack.current.push(prev);
+        if (undoStack.current.length > 50) undoStack.current.shift();
+        redoStack.current = [];
+      }
+      return typeof newVal === 'function' ? newVal(prev) : newVal;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    if (undoStack.current.length === 0) return;
+    setMdRaw(prev => {
+      redoStack.current.push(prev);
+      isUndoRedo.current = true;
+      const val = undoStack.current.pop();
+      setTimeout(() => { isUndoRedo.current = false; }, 0);
+      return val;
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    setMdRaw(prev => {
+      undoStack.current.push(prev);
+      isUndoRedo.current = true;
+      const val = redoStack.current.pop();
+      setTimeout(() => { isUndoRedo.current = false; }, 0);
+      return val;
+    });
+  }, []);
   const [theme, setTheme] = useState(() => {
     const cls = loadSetting('theme', '');
     return THEMES.find(t => t.cls === cls) || DEFAULT_THEME;
@@ -53,6 +89,7 @@ function App() {
   const [fontSize, setFontSize] = useState(() => loadSetting('fontSize', 15.5));
   const [lineHeight, setLineHeight] = useState(() => loadSetting('lineHeight', 1.8));
   const [maxWidth, setMaxWidth] = useState(() => loadSetting('maxWidth', 100));
+  const [editorVisible, setEditorVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -236,10 +273,14 @@ function App() {
           return !v;
         });
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) { redo(); } else { undo(); }
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, []);
+  }, [undo, redo]);
 
   // Close theme menu on outside click
   useEffect(() => {
@@ -288,6 +329,85 @@ function App() {
     if (e.key === 'Escape') { setSearchVisible(false); setSearchQuery(''); }
   };
 
+  // Markdown formatting
+  const wrapSelection = (before, after) => {
+    const el = editorRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = md.substring(start, end);
+    const aft = after || '';
+
+    // Check if already wrapped → unwrap (toggle off)
+    const beforeText = md.substring(start - before.length, start);
+    const afterText = md.substring(end, end + aft.length);
+    if (beforeText === before && afterText === aft) {
+      const newText = md.substring(0, start - before.length) + selected + md.substring(end + aft.length);
+      setMd(newText);
+      setTimeout(() => {
+        el.focus();
+        el.selectionStart = start - before.length;
+        el.selectionEnd = start - before.length + selected.length;
+      }, 0);
+      return;
+    }
+
+    const newText = md.substring(0, start) + before + selected + aft + md.substring(end);
+    setMd(newText);
+    setTimeout(() => {
+      el.focus();
+      el.selectionStart = start + before.length;
+      el.selectionEnd = start + before.length + selected.length;
+    }, 0);
+  };
+
+  const prefixLine = (prefix) => {
+    const el = editorRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const lineStart = md.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = md.indexOf('\n', start);
+    const line = md.substring(lineStart, lineEnd === -1 ? md.length : lineEnd);
+
+    // Heading toggle: remove existing heading prefix first
+    const headingMatch = line.match(/^(#{1,6})\s/);
+    let newLine;
+    let cursorDelta;
+
+    if (prefix.startsWith('#')) {
+      if (headingMatch && headingMatch[0] === prefix) {
+        // Same prefix → remove it (toggle off)
+        newLine = line.substring(prefix.length);
+        cursorDelta = -prefix.length;
+      } else if (headingMatch) {
+        // Different heading → replace
+        newLine = prefix + line.substring(headingMatch[0].length);
+        cursorDelta = prefix.length - headingMatch[0].length;
+      } else {
+        newLine = prefix + line;
+        cursorDelta = prefix.length;
+      }
+    } else {
+      // Non-heading prefix (>, -, 1., ---)
+      if (line.startsWith(prefix)) {
+        newLine = line.substring(prefix.length);
+        cursorDelta = -prefix.length;
+      } else {
+        newLine = prefix + line;
+        cursorDelta = prefix.length;
+      }
+    }
+
+    const newText = md.substring(0, lineStart) + newLine + md.substring(lineEnd === -1 ? md.length : lineEnd);
+    setMd(newText);
+    setTimeout(() => {
+      el.focus();
+      el.selectionStart = Math.max(lineStart, start + cursorDelta);
+      el.selectionEnd = Math.max(lineStart, end + cursorDelta);
+    }, 0);
+  };
+
   // Hold-to-repeat
   const holdRef = useRef({});
   const startHold = (fn) => {
@@ -313,6 +433,18 @@ function App() {
           <a className="file-name" href="https://github.com/ecsimsw/mdviewer" target="_blank" rel="noopener noreferrer"
             style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700 }}>MdEditor</a>
           <div className="header-controls">
+            <button className="ctrl-btn" onClick={() => setEditorVisible(v => !v)} title="Toggle editor"
+              style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: editorVisible ? 1 : 0.4 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+              </svg>
+            </button>
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+            <button className="ctrl-btn" onClick={undo} title="Undo"
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>↩</button>
+            <button className="ctrl-btn" onClick={redo} title="Redo"
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>↪</button>
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" onClick={() => setSearchVisible(v => {
               if (v) { setSearchQuery(''); }
               setReplaceVisible(false);
@@ -359,6 +491,47 @@ function App() {
             </button>
           </div>
         </div>
+        {editorVisible && <div className="md-toolbar" style={{
+          background: editorTheme.edBg || '#1e1e1e',
+          borderBottom: `1px solid ${editorTheme.edBorder || '#333'}`,
+          color: editorTheme.edHeaderColor || '#ccc',
+        }}>
+          <button onClick={() => prefixLine('# ')} title="Heading 1">H1</button>
+          <button onClick={() => prefixLine('## ')} title="Heading 2">H2</button>
+          <button onClick={() => prefixLine('### ')} title="Heading 3">H3</button>
+          <button onClick={() => {
+            const el = editorRef.current;
+            if (!el) return;
+            const start = el.selectionStart;
+            const lineStart = md.lastIndexOf('\n', start - 1) + 1;
+            const line = md.substring(lineStart);
+            const cleaned = line.replace(/^(#{1,6}\s|>\s|- |\d+\.\s)/, '');
+            const newText = md.substring(0, lineStart) + cleaned;
+            setMd(newText);
+            setTimeout(() => { el.focus(); el.selectionStart = el.selectionEnd = lineStart; }, 0);
+          }} title="Plain text">T</button>
+          <span className="tb-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+          <button onClick={() => wrapSelection('**', '**')} title="Bold"><b>B</b></button>
+          <button onClick={() => wrapSelection('*', '*')} title="Italic"><i>I</i></button>
+          <button onClick={() => wrapSelection('~~', '~~')} title="Strikethrough"><s>S</s></button>
+          <button onClick={() => wrapSelection('`', '`')} title="Inline code">&lt;/&gt;</button>
+          <span className="tb-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+          <button onClick={() => prefixLine('> ')} title="Quote">"</button>
+          <button onClick={() => prefixLine('- ')} title="List">–</button>
+          <button onClick={() => wrapSelection('\n```\n', '\n```\n')} title="Code block">{'{ }'}</button>
+          <span className="tb-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+          <button onClick={() => wrapSelection('[', '](url)')} title="Link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+          </button>
+          <button onClick={() => wrapSelection('![alt](', ')')} title="Image">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 13, height: 13 }}>
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+            </svg>
+          </button>
+          <button onClick={() => prefixLine('---\n')} title="Horizontal rule">―</button>
+        </div>}
         <div className={`search-bar ${searchVisible ? 'visible' : ''}`}
           style={{
             background: editorTheme.edHeaderBg || '#252526',
@@ -473,7 +646,11 @@ function App() {
               </svg>
             </button>
             <div className="ctrl-sep" />
-            <button className="ctrl-btn" onClick={() => window.print()} title="PDF">PDF</button>
+            <button className="ctrl-btn" onClick={() => window.print()} title="Save as PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+            </button>
           </div>
         </div>
         <div className="preview-content" ref={previewRef} style={{ background: theme.bg, '--print-bg': theme.bg }}>
