@@ -1,73 +1,20 @@
-# Mdviewer
+# MdNote
 
-Minimal Markdown viewer. Converts `.md` files to styled HTML and opens them in your browser.     
-Made by [ecsimsw](https://github.com/ecsimsw)
+Markdown editor with real-time preview.
 
-## Using Brew
-
-Install via Homebrew to get the macOS app:
-
-```bash
-brew tap ecsimsw/tap
-brew install --cask mdviewer
-```
-
-After installation, double-click any `.md` file to open it with MarkdownViewer.
-
-## Using NPM
-
-```bash
-npm install -g @ecsimsw/mdviewer
-```
-
-```bash
-mdviewer README.md
-mdviewer ./docs
-mdviewer README.md --out ./export
-```
-
-Or without installing:
-
-```bash
-npx @ecsimsw/mdviewer README.md
-```
+[mdnote.ecsimsw.com](https://mdnote.ecsimsw.com)
 
 ## Features
 
-- 12 themes
-  - Milk, Night, Space, Spring, Nugget, Forest, Ocean, Grape, Lemon, Wine, Sunset, Mocha
-- Zoom controls
-- Width, Margin adjustment
-- Search & Replace
-- Edit mode
-- Code block copy button
-- Table of Contents sidebar
-- PDF / TXT download
-- Temp file auto-cleanup after 24h
-
-## Stack
-
-- **Node.js** >= 18
-- **[Marked](https://github.com/markedjs/marked)** — Markdown to HTML parser
-- **[Pretendard](https://github.com/orioncactus/pretendard)** — Web font (CDN)
-- **AppleScript + osacompile** — macOS `.app` bundle
-- **Homebrew Cask** — macOS distribution
-
-Single file CLI (`cli.mjs`), no build step, no framework.
-
-## How it works
-
-Converts Markdown to a styled HTML file in a temp directory and opens it in your browser. Old temp files are automatically cleaned up on next launch.
-
-Use `--out` to save the HTML file permanently.
-
-## Preview Milk
-
-![screenshot](img/img.png)
-
-## Preview Sunset
-
-![screenshot](img/img_1.png)
+- Split-pane editor & preview
+- 12 themes (editor / preview independent)
+- Font size, line height, width, top padding controls
+- Find & Replace
+- Markdown toolbar (H1~H3, Bold, Italic, Code, Link, Image...)
+- List style options
+- PDF export with theme support
+- Undo / Redo
+- Settings saved in browser (localStorage)
 
 ## License
 

@@ -634,7 +634,7 @@ function App() {
       <div className="pane preview-pane" style={{ width: (100 - paneRatio) + '%', background: theme.bg }}>
         <div className="preview-header">
           <a className="label" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
-            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>PdfViewer</a>
+            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: '#888', cursor: 'pointer' }}>PdfViewer</a>
           <div className="header-controls">
             <button className="ctrl-btn"
               onMouseDown={() => startHold(() => setFontSize(f => Math.max(8, f - 1)))}

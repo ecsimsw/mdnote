@@ -196,7 +196,9 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
     box-shadow: 0 0 0 9999px var(--print-bg, #fff) !important;
   }
   .preview-content article {
-    padding: 24px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    padding-bottom: 24px !important;
   }
   .copy-btn { display: none !important; }
 }
