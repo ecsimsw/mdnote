@@ -1,27 +1,6 @@
 node_modules/
 package-lock.json
 .idea/
-
-cask "mdviewer" do
-  version "1.2.0"
-  sha256 "4cc2677dc829c227b8e26eff347cfddca8cf180c8e89c9a34428a40c2474aacf"
-
-  url "https://github.com/ecsimsw/mdviewer/releases/download/v#{version}/MarkdownViewer.app.zip"
-  name "MarkdownViewer"
-  desc "Markdown file viewer for macOS"
-  homepage "https://github.com/ecsimsw/mdviewer"
-
-  depends_on formula: "node"
-
-  app "MarkdownViewer.app"
-
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-cr", "#{appdir}/MarkdownViewer.app"]
-    system_command "/bin/bash",
-                   args: ["-c", "export PATH=#{HOMEBREW_PREFIX}/bin:$PATH && npm install -g @ecsimsw/mdviewer"]
-  end
-
-  zap trash: "~/Applications/MarkdownViewer.app"
-end
+.claude/
+app/build/
 
