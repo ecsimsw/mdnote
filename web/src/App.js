@@ -440,7 +440,7 @@ function App() {
     <div className="app">
       <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e' }}>
         <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
-          <a className="file-name" href="https://github.com/ecsimsw/mdviewer" target="_blank" rel="noopener noreferrer"
+          <a className="file-name" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
             style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700 }}>MdEditor</a>
           <div className="header-controls">
             <button className="ctrl-btn" onClick={() => {
@@ -633,7 +633,8 @@ function App() {
 
       <div className="pane preview-pane" style={{ width: (100 - paneRatio) + '%', background: theme.bg }}>
         <div className="preview-header">
-          <span className="label" style={{ fontWeight: 700, marginRight: 8 }}>PdfViewer</span>
+          <a className="label" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
+            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>PdfViewer</a>
           <div className="header-controls">
             <button className="ctrl-btn"
               onMouseDown={() => startHold(() => setFontSize(f => Math.max(8, f - 1)))}
