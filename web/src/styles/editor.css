@@ -176,7 +176,7 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
 
 /* Print: only show preview */
 @media print {
-  @page { margin: 1.5cm; size: A4; }
+  @page { margin: 0; size: A4; }
   .editor-pane, .divider, .preview-header, .theme-menu, .list-menu, .search-bar, .md-toolbar {
     display: none !important;
   }
@@ -197,7 +197,9 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
     box-shadow: 0 0 0 9999px var(--print-bg, #fff) !important;
   }
   .preview-content article {
-    padding-bottom: 24px !important;
+    padding-left: 1.5cm !important;
+    padding-right: 1.5cm !important;
+    padding-bottom: 1.5cm !important;
     zoom: var(--print-zoom, 0.65) !important;
   }
   .copy-btn { display: none !important; }
