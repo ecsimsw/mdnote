@@ -895,7 +895,13 @@ function App() {
             >
               {pdfZoom}%
             </button>
-            <button className="ctrl-btn" onClick={() => window.print()} title="Save as PDF">
+            <button className="ctrl-btn" onClick={() => {
+              const docTitle = currentDocId && docs.find(d => d.id === currentDocId)?.title;
+              const prev = document.title;
+              if (docTitle) document.title = docTitle;
+              window.print();
+              document.title = prev;
+            }} title="Save as PDF">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                 <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
               </svg>
