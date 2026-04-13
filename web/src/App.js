@@ -5,6 +5,7 @@ import './styles/editor.css';
 import './styles/preview.css';
 import './styles/themes.css';
 
+
 const SAMPLE_MD = `# Hello, Mdviewer
 
 Write **Markdown** on the left, see the preview on the right.
@@ -470,6 +471,11 @@ function App() {
         e.preventDefault();
         setMaxWidth(w => Math.min(100, w + 5));
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        setDocMenuVisible(true);
+        openNewDocInput();
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
         e.preventDefault();
         setReplaceVisible(v => {
@@ -482,6 +488,11 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         flushSave(true);
+      }
+      // Auto-focus editor on typing when nothing is focused
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1 &&
+          document.activeElement === document.body && editorRef.current) {
+        editorRef.current.focus();
       }
     };
     document.addEventListener('keydown', handler);
