@@ -280,6 +280,8 @@ function App() {
 
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimerRef = useRef(null);
+  const [actionToast, setActionToast] = useState('');
+  const actionToastTimerRef = useRef(null);
 
   const flushSave = useCallback((showIndicator) => {
     saveSetting('md', mdRef.current);
@@ -435,7 +437,30 @@ function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
-        if (e.shiftKey) { redo(); } else { undo(); }
+        if (e.shiftKey) {
+          if (redoStack.current.length > 0) {
+            redo();
+            setActionToast('Redo');
+            clearTimeout(actionToastTimerRef.current);
+            actionToastTimerRef.current = setTimeout(() => setActionToast(''), 800);
+          }
+        } else {
+          if (undoStack.current.length > 0) {
+            undo();
+            setActionToast('Undo');
+            clearTimeout(actionToastTimerRef.current);
+            actionToastTimerRef.current = setTimeout(() => setActionToast(''), 800);
+          }
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
+        e.preventDefault();
+        setReplaceVisible(v => {
+          if (v) { setSearchQuery(''); setReplaceQuery(''); }
+          return !v;
+        });
+        setSearchVisible(false);
+        setEditorVisible(false);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
@@ -648,7 +673,7 @@ function App() {
         </div>}
         <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
           <a className="file-name" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
-            style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'default', fontWeight: 700, userSelect: 'none' }}>MdEditor</a>
+            style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700, userSelect: 'none' }}>MdEditor</a>
           <div className="header-controls">
             <button className="ctrl-btn" ref={docBtnRef}
               onClick={() => setDocMenuVisible(v => !v)} title="문서 목록"
@@ -672,9 +697,23 @@ function App() {
               </svg>
             </button>
             <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
-            <button className="ctrl-btn" onClick={undo} title="Undo"
+            <button className="ctrl-btn" onClick={() => {
+              if (undoStack.current.length > 0) {
+                undo();
+                setActionToast('Undo');
+                clearTimeout(actionToastTimerRef.current);
+                actionToastTimerRef.current = setTimeout(() => setActionToast(''), 800);
+              }
+            }} title="Undo"
               style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: canUndo ? 1 : 0.4 }}>↩</button>
-            <button className="ctrl-btn" onClick={redo} title="Redo"
+            <button className="ctrl-btn" onClick={() => {
+              if (redoStack.current.length > 0) {
+                redo();
+                setActionToast('Redo');
+                clearTimeout(actionToastTimerRef.current);
+                actionToastTimerRef.current = setTimeout(() => setActionToast(''), 800);
+              }
+            }} title="Redo"
               style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: canRedo ? 1 : 0.4 }}>↪</button>
             <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" onClick={() => {
@@ -861,6 +900,11 @@ function App() {
           fontSize: 12, color: editorTheme.edColor || '#d4d4d4', opacity: 0.7,
           userSelect: 'none', pointerEvents: 'none',
         }}>[ Saved ]</span>}
+        {actionToast && <span style={{
+          position: 'absolute', bottom: 12, right: 16,
+          fontSize: 12, color: editorTheme.edColor || '#d4d4d4', opacity: 0.7,
+          userSelect: 'none', pointerEvents: 'none',
+        }}>[ {actionToast} ]</span>}
       </div>
 
       <div className="divider" ref={dividerRef} style={{ background: editorTheme.edBorder || '#333' }}
@@ -881,7 +925,7 @@ function App() {
           color: theme.edHeaderColor || '#666',
         }}>
           <a className="label" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
-            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'default', userSelect: 'none' }}>PdfViewer</a>
+            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer', userSelect: 'none' }}>PdfViewer</a>
           <div className="header-controls">
             <button className="ctrl-btn" ref={fontBtnRef}
               onClick={() => setFontMenuVisible(v => !v)} title="Font"

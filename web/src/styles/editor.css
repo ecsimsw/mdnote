@@ -20,6 +20,10 @@ body {
   border-bottom: 1px solid; flex-shrink: 0;
 }
 .editor-header .file-name { font-size: 13px; color: #ccc; font-weight: 400; }
+.editor-header .file-name:hover, .preview-header .label:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
 
 .editor-pane textarea {
   flex: 1; min-height: 0; width: 100%;
