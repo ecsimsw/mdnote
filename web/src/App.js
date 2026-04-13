@@ -45,6 +45,23 @@ const DEFAULT_THEME = THEMES.find(t => t.cls === '') || THEMES[0];
 const DEFAULT_EDITOR_THEME = THEMES.find(t => t.cls === 'dark') || THEMES[1];
 
 function App() {
+  const [docs, setDocs] = useState(() => {
+    const saved = loadSetting('docs', null);
+    if (saved && saved.length > 0) return saved;
+    const id = Date.now();
+    const initial = [{ id, title: '무제', content: loadSetting('md', SAMPLE_MD), updatedAt: id }];
+    saveSetting('docs', initial);
+    saveSetting('currentDocId', id);
+    return initial;
+  });
+  const [currentDocId, setCurrentDocId] = useState(() => loadSetting('currentDocId', null));
+  const [docMenuVisible, setDocMenuVisible] = useState(false);
+  const [renamingDocId, setRenamingDocId] = useState(null);
+  const [renamingTitle, setRenamingTitle] = useState('');
+  const renameInputRef = useRef(null);
+  const docBtnRef = useRef(null);
+  const docMenuRef = useRef(null);
+
   const [md, setMdRaw] = useState(() => loadSetting('md', SAMPLE_MD));
   const undoStack = useRef([]);
   const redoStack = useRef([]);
@@ -169,10 +186,66 @@ function App() {
   useEffect(() => { saveSetting('editorTheme', editorTheme.cls); }, [editorTheme]);
   useEffect(() => { saveSetting('fontSize', fontSize); }, [fontSize]);
   useEffect(() => { saveSetting('pdfZoom', pdfZoom); }, [pdfZoom]);
+  useEffect(() => { saveSetting('docs', docs); }, [docs]);
+  useEffect(() => { saveSetting('currentDocId', currentDocId); }, [currentDocId]);
   useEffect(() => { saveSetting('lineHeight', lineHeight); }, [lineHeight]);
   useEffect(() => { saveSetting('maxWidth', maxWidth); }, [maxWidth]);
   useEffect(() => { saveSetting('topPadding', topPadding); }, [topPadding]);
   useEffect(() => { saveSetting('fontFamily', fontFamily); }, [fontFamily]);
+
+  const getDocTitle = (content) => {
+    const first = content.trim().split('\n')[0] || '';
+    return first.replace(/^#+\s*/, '').slice(0, 30) || '제목 없음';
+  };
+
+  const [newDocInputVisible, setNewDocInputVisible] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState('');
+  const newDocInputRef = useRef(null);
+
+  const openNewDocInput = () => {
+    setNewDocTitle('');
+    setNewDocInputVisible(true);
+    setTimeout(() => newDocInputRef.current?.focus(), 50);
+  };
+
+  const confirmNewDoc = () => {
+    const title = newDocTitle.trim() || '제목 없음';
+    const id = Date.now();
+    setDocs(prev => [{ id, title, content: '', updatedAt: Date.now() }, ...prev].slice(0, 20));
+    setMdRaw('');
+    undoStack.current = [];
+    redoStack.current = [];
+    setCurrentDocId(id);
+    setNewDocInputVisible(false);
+    setDocMenuVisible(false);
+  };
+
+  const loadDoc = (doc) => {
+    setMdRaw(doc.content);
+    undoStack.current = [];
+    redoStack.current = [];
+    setCurrentDocId(doc.id);
+    setDocMenuVisible(false);
+  };
+
+  const startRename = (doc, e) => {
+    e.stopPropagation();
+    setRenamingDocId(doc.id);
+    setRenamingTitle(doc.title);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+
+  const confirmRename = () => {
+    const title = renamingTitle.trim() || '무제';
+    setDocs(prev => prev.map(d => d.id === renamingDocId ? { ...d, title } : d));
+    setRenamingDocId(null);
+  };
+
+  const deleteDoc = (id, e) => {
+    e.stopPropagation();
+    setDocs(prev => prev.filter(d => d.id !== id));
+    if (currentDocId === id) setCurrentDocId(null);
+  };
 
   // Load Google Font
   useEffect(() => {
@@ -192,9 +265,14 @@ function App() {
   useEffect(() => { saveSetting('customListChar', customListChar); }, [customListChar]);
   useEffect(() => { saveSetting('paneRatio', paneRatio); }, [paneRatio]);
   useEffect(() => {
-    const timer = setTimeout(() => saveSetting('md', md), 500);
+    const timer = setTimeout(() => {
+      saveSetting('md', md);
+      if (currentDocId) {
+        setDocs(prev => prev.map(d => d.id === currentDocId ? { ...d, content: md, updatedAt: Date.now() } : d));
+      }
+    }, 500);
     return () => clearTimeout(timer);
-  }, [md]);
+  }, [md, currentDocId]);
 
   // Apply theme to body
   useEffect(() => {
@@ -363,6 +441,13 @@ function App() {
           pdfZoomBtnRef.current && !pdfZoomBtnRef.current.contains(e.target)) {
         setPdfZoomMenuVisible(false);
       }
+      if (docMenuRef.current && !docMenuRef.current.contains(e.target) &&
+          docBtnRef.current && !docBtnRef.current.contains(e.target) &&
+          !e.target.closest('.list-menu')) {
+        setDocMenuVisible(false);
+        setNewDocInputVisible(false);
+        setRenamingDocId(null);
+      }
     };
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
@@ -497,8 +582,16 @@ function App() {
       <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e' }}>
         <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
           <a className="file-name" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
-            style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700 }}>MdEditor</a>
+            style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'default', fontWeight: 700, userSelect: 'none' }}>MdEditor</a>
           <div className="header-controls">
+            <button className="ctrl-btn" ref={docBtnRef}
+              onClick={() => setDocMenuVisible(v => !v)} title="문서 목록"
+              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+              </svg>
+            </button>
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" onClick={() => {
               setEditorVisible(v => !v);
               setSearchVisible(false);
@@ -694,7 +787,7 @@ function App() {
           color: theme.edHeaderColor || '#666',
         }}>
           <a className="label" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
-            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>PdfViewer</a>
+            style={{ fontWeight: 700, marginRight: 8, textDecoration: 'none', color: 'inherit', cursor: 'default', userSelect: 'none' }}>PdfViewer</a>
           <div className="header-controls">
             <button className="ctrl-btn" ref={fontBtnRef}
               onClick={() => setFontMenuVisible(v => !v)} title="Font"
@@ -793,6 +886,78 @@ function App() {
             }}
           />
         </div>
+      </div>
+
+      <div
+        className={`list-menu ${docMenuVisible ? 'visible' : ''}`}
+        ref={docMenuRef}
+        style={docMenuVisible && docBtnRef.current ? (() => {
+          const rect = docBtnRef.current.getBoundingClientRect();
+          return { top: rect.bottom + 4, left: rect.left, minWidth: 200, maxHeight: 360, overflowY: 'auto' };
+        })() : {}}
+      >
+        {newDocInputVisible ? (
+          <div className="list-option" style={{ padding: '4px 8px', gap: 4, display: 'flex', alignItems: 'center' }}>
+            <input
+              ref={newDocInputRef}
+              type="text"
+              value={newDocTitle}
+              onChange={e => setNewDocTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') confirmNewDoc(); if (e.key === 'Escape') setNewDocInputVisible(false); }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                flex: 1, background: 'transparent', border: '1px solid #ddd', borderRadius: 4,
+                color: 'inherit', fontSize: 12, padding: '3px 6px', outline: 'none', minWidth: 0,
+              }}
+            />
+          </div>
+        ) : (
+          <button className="list-option" onClick={e => { e.stopPropagation(); openNewDocInput(); }}
+            style={{ fontWeight: 600, opacity: 0.7, fontSize: 12 }}>
+            새 문서
+          </button>
+        )}
+        <div style={{ height: 1, background: 'rgba(128,128,128,0.2)', margin: '4px 0' }} />
+        {docs.length === 0 && (
+          <div style={{ padding: '8px 12px', fontSize: 12, opacity: 0.4 }}>저장된 문서가 없습니다</div>
+        )}
+        {docs.map(d => (
+          renamingDocId === d.id ? (
+            <div key={d.id} className="list-option active" style={{ padding: '4px 8px', gap: 4, display: 'flex', alignItems: 'center' }}>
+              <input
+                ref={renameInputRef}
+                type="text"
+                value={renamingTitle}
+                onChange={e => setRenamingTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') setRenamingDocId(null); }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  flex: 1, background: 'transparent', border: '1px solid #ddd', borderRadius: 4,
+                  color: 'inherit', fontSize: 12, padding: '3px 6px', outline: 'none', minWidth: 0,
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              key={d.id}
+              className={`list-option ${currentDocId === d.id ? 'active' : ''}`}
+              onClick={() => loadDoc(d)}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>{d.title}</span>
+              <span onClick={(e) => startRename(d, e)}
+                style={{ fontSize: 10, opacity: 0.3, flexShrink: 0, padding: '0 2px' }}
+                onMouseEnter={e => e.target.style.opacity = 0.8}
+                onMouseLeave={e => e.target.style.opacity = 0.3}
+              >✎</span>
+              <span onClick={(e) => deleteDoc(d.id, e)}
+                style={{ fontSize: 11, opacity: 0.3, flexShrink: 0, padding: '0 2px' }}
+                onMouseEnter={e => e.target.style.opacity = 0.8}
+                onMouseLeave={e => e.target.style.opacity = 0.3}
+              >✕</span>
+            </button>
+          )
+        ))}
       </div>
 
       <div
@@ -935,6 +1100,8 @@ function App() {
           ];
         })}
       </div>
+
+
     </div>
   );
 }
