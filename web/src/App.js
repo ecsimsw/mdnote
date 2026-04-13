@@ -820,19 +820,42 @@ function App() {
           <button onClick={replaceAll} style={{ opacity: 0.6, fontSize: 11 }}>All</button>
           <button className="close-search" onClick={() => { setReplaceVisible(false); setSearchQuery(''); setReplaceQuery(''); }}>&times;</button>
         </div>}
-        <textarea
-          ref={editorRef}
-          spellCheck={false}
-          value={md}
-          onChange={e => setMd(e.target.value)}
-          onScroll={onEditorScroll}
-          onKeyDown={onEditorKeyDown}
-          style={{
-            background: editorTheme.edBg || '#1e1e1e',
-            color: editorTheme.edColor || '#d4d4d4',
-            caretColor: editorTheme.edCaret || '#aeafad',
-          }}
-        />
+        <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+          {!md && <div style={{
+            position: 'absolute', inset: 0, display: 'flex',
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            gap: 24, pointerEvents: 'none', color: editorTheme.edHeaderColor || '#888',
+            opacity: 0.7,
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28 }}>
+                <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+              </svg>
+              <span style={{ fontSize: 12 }}>Start writing</span>
+            </div>
+            <span style={{ opacity: 0.5, fontSize: 12 }}>or</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28 }}>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+              </svg>
+              <span style={{ fontSize: 12 }}>Drop .md file</span>
+            </div>
+          </div>}
+          <textarea
+            ref={editorRef}
+            spellCheck={false}
+            value={md}
+            onChange={e => setMd(e.target.value)}
+            onScroll={onEditorScroll}
+            onKeyDown={onEditorKeyDown}
+            style={{
+              background: md ? (editorTheme.edBg || '#1e1e1e') : 'transparent',
+              color: editorTheme.edColor || '#d4d4d4',
+              caretColor: editorTheme.edCaret || '#aeafad',
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+            }}
+          />
+        </div>
         {savedVisible && <span style={{
           position: 'absolute', bottom: 12, right: 16,
           fontSize: 12, color: editorTheme.edColor || '#d4d4d4', opacity: 0.7,
