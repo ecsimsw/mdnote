@@ -16,7 +16,7 @@ article {
   --spacing: 1;
   max-width: none;
   padding: 40px 40px 96px;
-  overflow: hidden;
+  overflow: visible;
 }
 article img {
   max-width: 100%;
@@ -56,7 +56,6 @@ pre {
   border-radius: 6px;
   padding: calc(18px * var(--spacing)) 20px;
   margin: calc(24px * var(--spacing)) 0;
-  overflow-x: auto;
   font-size: 13.5px;
   line-height: 1.65;
 }

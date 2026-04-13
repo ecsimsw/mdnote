@@ -763,6 +763,7 @@ function App() {
             ref={contentRef}
             style={{
               zoom: fontSize / 15.5,
+              '--print-zoom': (fontSize / 15.5) * 0.65,
               lineHeight: lineHeight,
               '--spacing': lineHeight / 1.6,
               '--list-style': LIST_STYLES[listStyle].type,

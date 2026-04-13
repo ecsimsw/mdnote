@@ -27,6 +27,7 @@ body {
   font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
   font-size: 14px; line-height: 1.5;
   padding: 16px 20px; tab-size: 2;
+  white-space: pre; overflow-x: auto;
 }
 .editor-pane textarea::selection { background: rgba(100,100,255,0.2); }
 
@@ -42,7 +43,7 @@ body {
 }
 .preview-header .label { font-size: 13px; color: #888; font-weight: 500; }
 
-.preview-content { flex: 1; overflow-y: auto; }
+.preview-content { flex: 1; overflow: auto; }
 
 /* Divider */
 .divider {
@@ -197,7 +198,7 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
   }
   .preview-content article {
     padding-bottom: 24px !important;
-    zoom: 0.65 !important;
+    zoom: var(--print-zoom, 0.65) !important;
   }
   .copy-btn { display: none !important; }
 }
