@@ -66,6 +66,8 @@ function App() {
   const undoStack = useRef([]);
   const redoStack = useRef([]);
   const isUndoRedo = useRef(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   const setMd = useCallback((newVal) => {
     setMdRaw(prev => {
@@ -74,6 +76,8 @@ function App() {
         if (undoStack.current.length > 50) undoStack.current.shift();
         redoStack.current = [];
       }
+      setCanUndo(undoStack.current.length > 0);
+      setCanRedo(redoStack.current.length > 0);
       return typeof newVal === 'function' ? newVal(prev) : newVal;
     });
   }, []);
@@ -84,6 +88,8 @@ function App() {
       redoStack.current.push(prev);
       isUndoRedo.current = true;
       const val = undoStack.current.pop();
+      setCanUndo(undoStack.current.length > 0);
+      setCanRedo(redoStack.current.length > 0);
       setTimeout(() => { isUndoRedo.current = false; }, 0);
       return val;
     });
@@ -95,6 +101,8 @@ function App() {
       undoStack.current.push(prev);
       isUndoRedo.current = true;
       const val = redoStack.current.pop();
+      setCanUndo(undoStack.current.length > 0);
+      setCanRedo(redoStack.current.length > 0);
       setTimeout(() => { isUndoRedo.current = false; }, 0);
       return val;
     });
@@ -607,9 +615,9 @@ function App() {
             </button>
             <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" onClick={undo} title="Undo"
-              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>↩</button>
+              style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: canUndo ? 1 : 0.4 }}>↩</button>
             <button className="ctrl-btn" onClick={redo} title="Redo"
-              style={{ color: editorTheme.edHeaderColor || '#ccc' }}>↪</button>
+              style={{ color: editorTheme.edHeaderColor || '#ccc', opacity: canRedo ? 1 : 0.4 }}>↪</button>
             <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" onClick={() => {
               setSearchVisible(v => {
