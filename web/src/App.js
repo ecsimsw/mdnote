@@ -272,15 +272,30 @@ function App() {
   useEffect(() => { saveSetting('listStyle', listStyle); }, [listStyle]);
   useEffect(() => { saveSetting('customListChar', customListChar); }, [customListChar]);
   useEffect(() => { saveSetting('paneRatio', paneRatio); }, [paneRatio]);
+  const mdRef = useRef(md);
+  const currentDocIdRef = useRef(currentDocId);
+  mdRef.current = md;
+  currentDocIdRef.current = currentDocId;
+
+  const [savedVisible, setSavedVisible] = useState(false);
+  const savedTimerRef = useRef(null);
+
+  const flushSave = useCallback((showIndicator) => {
+    saveSetting('md', mdRef.current);
+    if (currentDocIdRef.current) {
+      setDocs(prev => prev.map(d => d.id === currentDocIdRef.current ? { ...d, content: mdRef.current, updatedAt: Date.now() } : d));
+    }
+    if (showIndicator) {
+      setSavedVisible(true);
+      clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSavedVisible(false), 1000);
+    }
+  }, []);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      saveSetting('md', md);
-      if (currentDocId) {
-        setDocs(prev => prev.map(d => d.id === currentDocId ? { ...d, content: md, updatedAt: Date.now() } : d));
-      }
-    }, 500);
+    const timer = setTimeout(flushSave, 500);
     return () => clearTimeout(timer);
-  }, [md, currentDocId]);
+  }, [md, currentDocId, flushSave]);
 
   // Apply theme to body
   useEffect(() => {
@@ -421,10 +436,14 @@ function App() {
         e.preventDefault();
         if (e.shiftKey) { redo(); } else { undo(); }
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        flushSave(true);
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [undo, redo]);
+  }, [undo, redo, flushSave]);
 
   // Close theme menu on outside click
   useEffect(() => {
@@ -587,7 +606,7 @@ function App() {
 
   return (
     <div className="app">
-      <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e' }}>
+      <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e', position: 'relative' }}>
         <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
           <a className="file-name" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
             style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'default', fontWeight: 700, userSelect: 'none' }}>MdEditor</a>
@@ -775,6 +794,11 @@ function App() {
             caretColor: editorTheme.edCaret || '#aeafad',
           }}
         />
+        {savedVisible && <span style={{
+          position: 'absolute', bottom: 12, right: 16,
+          fontSize: 12, color: editorTheme.edColor || '#d4d4d4', opacity: 0.7,
+          userSelect: 'none', pointerEvents: 'none',
+        }}>[ Saved ]</span>}
       </div>
 
       <div className="divider" ref={dividerRef} style={{ background: editorTheme.edBorder || '#333' }}
