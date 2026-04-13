@@ -7,13 +7,15 @@ Markdown editor with real-time preview.
 ## Features
 
 - Split-pane editor & preview
+- Document management (up to 20 docs, auto-save)
 - 12 themes (editor / preview independent)
-- Font size, line height, width, top padding controls
+- 20+ fonts, font size, line height, width, top padding controls
 - Find & Replace
 - Markdown toolbar (H1~H3, Bold, Italic, Code, Link, Image...)
 - List style options
-- PDF export with theme support
+- PDF export with adjustable zoom
 - Undo / Redo
+- Horizontal scroll for wide content
 - Settings saved in browser (localStorage)
 
 ## Screenshot
