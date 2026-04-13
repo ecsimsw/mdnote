@@ -146,6 +146,7 @@ function App() {
   ];
   const [editorVisible, setEditorVisible] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const dropCursorRef = useRef(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -649,11 +650,44 @@ function App() {
   return (
     <div className="app">
       <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e', position: 'relative' }}
-        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          // Check if dragging image or md file
+          const items = e.dataTransfer.items;
+          let isImage = false;
+          if (items) {
+            for (let i = 0; i < items.length; i++) {
+              if (items[i].type.startsWith('image/')) { isImage = true; break; }
+            }
+          }
+          setDragOver(isImage ? 'image' : 'file');
+          // Show drop cursor for images
+          const el = editorRef.current;
+          const cursor = dropCursorRef.current;
+          if (isImage && el && cursor) {
+            const rect = el.getBoundingClientRect();
+            const lineH = parseFloat(getComputedStyle(el).lineHeight) || 20;
+            const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+            const y = e.clientY - rect.top + el.scrollTop;
+            const lineIdx = Math.floor((y - paddingTop) / lineH);
+            const cursorY = rect.top + paddingTop + lineIdx * lineH - el.scrollTop;
+            cursor.style.top = cursorY + 'px';
+            cursor.style.left = rect.left + 'px';
+            cursor.style.width = rect.width + 'px';
+            cursor.style.display = 'block';
+          } else if (cursor) {
+            cursor.style.display = 'none';
+          }
+        }}
+        onDragLeave={() => {
+          setDragOver(false);
+          if (dropCursorRef.current) dropCursorRef.current.style.display = 'none';
+        }}
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
+          if (dropCursorRef.current) dropCursorRef.current.style.display = 'none';
           const file = e.dataTransfer.files[0];
           if (file && (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt'))) {
             const reader = new FileReader();
@@ -667,9 +701,44 @@ function App() {
               setCurrentDocId(id);
             };
             reader.readAsText(file);
+          } else {
+            // Handle image files (multiple)
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            if (files.length > 0) {
+              // Get drop position in textarea
+              const el = editorRef.current;
+              let dropPos = el ? el.selectionStart : 0;
+              if (el) {
+                // Try to find cursor position from drop coordinates
+                const rect = el.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top + el.scrollTop;
+                const lineH = parseFloat(getComputedStyle(el).lineHeight) || 20;
+                const charW = 8;
+                const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+                const paddingLeft = parseFloat(getComputedStyle(el).paddingLeft) || 0;
+                const lines = el.value.split('\n');
+                const lineIdx = Math.min(Math.floor((y - paddingTop) / lineH), lines.length - 1);
+                let pos = 0;
+                for (let i = 0; i < lineIdx && i < lines.length; i++) pos += lines[i].length + 1;
+                const colIdx = Math.min(Math.floor((x - paddingLeft) / charW), (lines[lineIdx] || '').length);
+                dropPos = pos + Math.max(0, colIdx);
+              }
+              files.forEach((file, i) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const imgMd = `![${file.name}](${ev.target.result})`;
+                  setMd(prev => {
+                    const pos = Math.min(dropPos, prev.length);
+                    return prev.substring(0, pos) + '\n' + imgMd + '\n' + prev.substring(pos);
+                  });
+                };
+                reader.readAsDataURL(file);
+              });
+            }
           }
         }}>
-        {dragOver && <div style={{
+        {dragOver === 'file' && <div style={{
           position: 'absolute', inset: 0, zIndex: 999,
           background: 'rgba(0,122,255,0.08)',
           border: '2px dashed rgba(0,122,255,0.4)',
@@ -903,6 +972,25 @@ function App() {
             onChange={e => setMd(e.target.value)}
             onScroll={onEditorScroll}
             onKeyDown={onEditorKeyDown}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (let i = 0; i < items.length; i++) {
+                if (items[i].type.startsWith('image/')) {
+                  e.preventDefault();
+                  const file = items[i].getAsFile();
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const imgMd = `![image](${ev.target.result})`;
+                    const el = editorRef.current;
+                    const pos = el ? el.selectionStart : 0;
+                    setMd(prev => prev.substring(0, pos) + '\n' + imgMd + '\n' + prev.substring(pos));
+                  };
+                  reader.readAsDataURL(file);
+                  break;
+                }
+              }
+            }}
             style={{
               background: md ? (editorTheme.edBg || '#1e1e1e') : 'transparent',
               color: editorTheme.edColor || '#d4d4d4',
@@ -922,6 +1010,13 @@ function App() {
           userSelect: 'none', pointerEvents: 'none',
         }}>[ {actionToast} ]</span>}
       </div>
+
+      <div ref={dropCursorRef} style={{
+        display: 'none', position: 'fixed', height: 2,
+        background: editorTheme.edCaret || '#aeafad', borderRadius: 1,
+        pointerEvents: 'none', zIndex: 9999,
+        opacity: 0.8,
+      }} />
 
       <div className="divider" ref={dividerRef} style={{ background: editorTheme.edBorder || '#333' }}
         onMouseDown={(e) => {

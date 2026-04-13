@@ -184,7 +184,8 @@ body.mocha .divider-dot.visible { background: rgba(200,200,200,0.4); }
   .editor-pane, .divider, .preview-header, .theme-menu, .list-menu, .search-bar, .md-toolbar {
     display: none !important;
   }
-  .app { display: block !important; }
+  .app { display: block !important; height: auto !important; }
+  html, body, #root { height: auto !important; overflow: visible !important; }
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
