@@ -453,6 +453,22 @@ function App() {
           }
         }
       }
+      if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        setFontSize(f => Math.min(100, f + 1));
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '-') {
+        e.preventDefault();
+        setFontSize(f => Math.max(8, f - 1));
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '[') {
+        e.preventDefault();
+        setMaxWidth(w => Math.max(40, w - 5));
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === ']') {
+        e.preventDefault();
+        setMaxWidth(w => Math.min(100, w + 5));
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
         e.preventDefault();
         setReplaceVisible(v => {
