@@ -90,6 +90,9 @@ function App() {
   const [lineHeight, setLineHeight] = useState(() => loadSetting('lineHeight', 1.6));
   const [maxWidth, setMaxWidth] = useState(() => loadSetting('maxWidth', 100));
   const [topPadding, setTopPadding] = useState(() => loadSetting('topPadding', 40));
+  const [pdfZoom, setPdfZoom] = useState(() => loadSetting('pdfZoom', 65));
+  const [pdfZoomMenuVisible, setPdfZoomMenuVisible] = useState(false);
+  const [pdfZoomInput, setPdfZoomInput] = useState(String(pdfZoom));
   const [fontMenuVisible, setFontMenuVisible] = useState(false);
   const [fontFamily, setFontFamily] = useState(() => loadSetting('fontFamily', 'Pretendard'));
   const fontBtnRef = useRef(null);
@@ -155,6 +158,8 @@ function App() {
   const listMenuRef = useRef(null);
   const dividerRef = useRef(null);
   const dividerDotRef = useRef(null);
+  const pdfZoomBtnRef = useRef(null);
+  const pdfZoomMenuRef = useRef(null);
   const editorThemeBtnRef = useRef(null);
   const editorThemeMenuRef = useRef(null);
   const isDragging = useRef(false);
@@ -163,6 +168,7 @@ function App() {
   useEffect(() => { saveSetting('theme', theme.cls); }, [theme]);
   useEffect(() => { saveSetting('editorTheme', editorTheme.cls); }, [editorTheme]);
   useEffect(() => { saveSetting('fontSize', fontSize); }, [fontSize]);
+  useEffect(() => { saveSetting('pdfZoom', pdfZoom); }, [pdfZoom]);
   useEffect(() => { saveSetting('lineHeight', lineHeight); }, [lineHeight]);
   useEffect(() => { saveSetting('maxWidth', maxWidth); }, [maxWidth]);
   useEffect(() => { saveSetting('topPadding', topPadding); }, [topPadding]);
@@ -352,6 +358,10 @@ function App() {
       if (fontMenuRef.current && !fontMenuRef.current.contains(e.target) &&
           fontBtnRef.current && !fontBtnRef.current.contains(e.target)) {
         setFontMenuVisible(false);
+      }
+      if (pdfZoomMenuRef.current && !pdfZoomMenuRef.current.contains(e.target) &&
+          pdfZoomBtnRef.current && !pdfZoomBtnRef.current.contains(e.target)) {
+        setPdfZoomMenuVisible(false);
       }
     };
     document.addEventListener('click', handler);
@@ -751,6 +761,15 @@ function App() {
               </svg>
             </button>
             <div className="ctrl-sep" />
+            <button
+              className="ctrl-btn"
+              ref={pdfZoomBtnRef}
+              onClick={() => { setPdfZoomMenuVisible(v => !v); setPdfZoomInput(String(pdfZoom)); }}
+              title="PDF 비율"
+              style={{ fontSize: 11, fontWeight: 500, minWidth: 32 }}
+            >
+              {pdfZoom}%
+            </button>
             <button className="ctrl-btn" onClick={() => window.print()} title="Save as PDF">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                 <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
@@ -763,7 +782,7 @@ function App() {
             ref={contentRef}
             style={{
               zoom: fontSize / 15.5,
-              '--print-zoom': (fontSize / 15.5) * 0.65,
+              '--print-zoom': (fontSize / 15.5) * (pdfZoom / 100),
               lineHeight: lineHeight,
               '--spacing': lineHeight / 1.6,
               '--list-style': LIST_STYLES[listStyle].type,
@@ -791,6 +810,44 @@ function App() {
             {t.name}
           </button>
         ))}
+      </div>
+
+      <div
+        className={`list-menu ${pdfZoomMenuVisible ? 'visible' : ''}`}
+        ref={pdfZoomMenuRef}
+        style={pdfZoomMenuVisible && pdfZoomBtnRef.current ? (() => {
+          const rect = pdfZoomBtnRef.current.getBoundingClientRect();
+          return { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+        })() : {}}
+      >
+        {[50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map(v => (
+          <button
+            key={v}
+            className={`list-option ${pdfZoom === v ? 'active' : ''}`}
+            onClick={() => { setPdfZoom(v); setPdfZoomInput(String(v)); setPdfZoomMenuVisible(false); }}
+          >
+            {v}%
+          </button>
+        ))}
+        <div className={`list-option ${![50,55,60,65,70,75,80,85,90,95,100].includes(pdfZoom) ? 'active' : ''}`}
+          style={{ padding: '4px 8px', gap: 4 }}>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={pdfZoomInput}
+            onChange={e => setPdfZoomInput(e.target.value.replace(/\D/g, ''))}
+            onBlur={() => { const v = Number(pdfZoomInput); if (v > 0 && v <= 200) setPdfZoom(v); else setPdfZoomInput(String(pdfZoom)); }}
+            onKeyDown={e => { if (e.key === 'Enter') { e.target.blur(); } }}
+            onFocus={e => e.target.select()}
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              width: 48, textAlign: 'center', background: 'transparent',
+              border: '1px solid #ddd', borderRadius: 4, color: 'inherit',
+              fontSize: 13, padding: '2px 4px', outline: 'none', userSelect: 'text',
+            }}
+          />
+          <span style={{ fontSize: 12, opacity: 0.5 }}>%</span>
+        </div>
       </div>
 
       <div
