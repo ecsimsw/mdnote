@@ -859,14 +859,14 @@ function App() {
             </button>
             <div className="ctrl-sep" />
             <button className="ctrl-btn" title="Move up"
-              onMouseDown={() => startHold(() => setTopPadding(p => Math.max(0, p - 5)))}
+              onMouseDown={() => startHold(() => setTopPadding(p => Math.max(0, p - 10)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 14, height: 14 }}>
                 <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
               </svg>
             </button>
             <button className="ctrl-btn" title="Move down"
-              onMouseDown={() => startHold(() => setTopPadding(p => Math.min(200, p + 5)))}
+              onMouseDown={() => startHold(() => setTopPadding(p => Math.min(500, p + 10)))}
               onMouseUp={stopHold} onMouseLeave={stopHold}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 14, height: 14 }}>
                 <path d="M12 5v14"/><path d="M5 12l7 7 7-7"/>
