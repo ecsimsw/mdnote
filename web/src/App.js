@@ -145,6 +145,7 @@ function App() {
     { name: 'Source Serif 4', value: "'Source Serif 4', serif", url: 'https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;700&display=swap', lang: 'E' },
   ];
   const [editorVisible, setEditorVisible] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [replaceVisible, setReplaceVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -606,7 +607,45 @@ function App() {
 
   return (
     <div className="app">
-      <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e', position: 'relative' }}>
+      <div className="pane editor-pane" style={{ width: paneRatio + '%', background: editorTheme.edBg || '#1e1e1e', position: 'relative' }}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files[0];
+          if (file && (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt'))) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              const title = file.name.replace(/\.(md|markdown|txt)$/, '');
+              const id = Date.now();
+              setDocs(prev => [{ id, title, content: ev.target.result, updatedAt: Date.now() }, ...prev].slice(0, 20));
+              setMdRaw(ev.target.result);
+              undoStack.current = [];
+              redoStack.current = [];
+              setCurrentDocId(id);
+            };
+            reader.readAsText(file);
+          }
+        }}>
+        {dragOver && <div style={{
+          position: 'absolute', inset: 0, zIndex: 999,
+          background: 'rgba(0,122,255,0.08)',
+          border: '2px dashed rgba(0,122,255,0.4)',
+          borderRadius: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+        }}>
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            color: 'rgba(0,122,255,0.7)', fontSize: 14,
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 32, height: 32 }}>
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+            </svg>
+            Drop .md file
+          </div>
+        </div>}
         <div className="editor-header" style={{ background: editorTheme.edHeaderBg || '#252526', borderColor: editorTheme.edBorder || '#333' }}>
           <a className="file-name" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
             style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'default', fontWeight: 700, userSelect: 'none' }}>MdEditor</a>
