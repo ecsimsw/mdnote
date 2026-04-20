@@ -1,6 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
 import THEMES from './themes';
+
+marked.use({
+  tokenizer: {
+    del(src) {
+      const match = /^~~(?=\S)([\s\S]*?\S)~~/.exec(src);
+      if (match) {
+        return { type: 'del', raw: match[0], text: match[1] };
+      }
+    }
+  }
+});
 import './styles/editor.css';
 import './styles/preview.css';
 import './styles/themes.css';
