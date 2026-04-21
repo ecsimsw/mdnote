@@ -19,21 +19,25 @@ marked.use({
       let alt = token.text || '';
       let width = '';
       let align = '';
+      let offset = '';
       const parts = alt.split('|');
       if (parts.length >= 2) {
         const parsed = parts.slice(1).map(s => s.trim());
         const remaining = [];
         parsed.forEach(p => {
-          if (/^\d+$/.test(p)) width = p;
+          if (/^-?\d+$/.test(p) && !width) width = p;
+          else if (/^-?\d+$/.test(p)) offset = p;
           else if (['left', 'center', 'right'].includes(p)) align = p;
+          else if (/^x-?\d+$/.test(p)) offset = p.substring(1);
           else remaining.push(p);
         });
         alt = [parts[0].trim(), ...remaining].join('|');
       }
       const widthAttr = width ? ` width="${width}"` : '';
       const alignAttr = align ? ` data-align="${align}"` : '';
+      const offsetAttr = offset ? ` data-offset="${offset}"` : '';
       const title = token.title ? ` title="${token.title}"` : '';
-      return `<img src="${token.href}" alt="${alt}"${title}${widthAttr}${alignAttr} data-raw-alt="${token.text || ''}" />`;
+      return `<img src="${token.href}" alt="${alt}"${title}${widthAttr}${alignAttr}${offsetAttr} data-raw-alt="${token.text || ''}" />`;
     }
   }
 });
@@ -362,16 +366,16 @@ function App() {
     contentRef.current.innerHTML = marked.parse(md);
 
     // Add image resize handles + alignment controls
-    const updateImgMd = (img, newWidth, newAlign) => {
+    const updateImgMd = (img, newWidth, newAlign, newOffset) => {
       const rawAlt = img.getAttribute('data-raw-alt') || '';
       const src = img.src;
-      // Parse clean alt (strip width/align parts)
       const parts = rawAlt.split('|');
       const cleanAlt = parts[0].trim() || img.alt || 'image';
       const oldPattern = `![${rawAlt}](${src})`;
       const suffixes = [];
       if (newWidth) suffixes.push(newWidth);
       if (newAlign && newAlign !== 'left') suffixes.push(newAlign);
+      if (newOffset && Number(newOffset) !== 0) suffixes.push('x' + newOffset);
       const newAltFull = suffixes.length > 0 ? `${cleanAlt}|${suffixes.join('|')}` : cleanAlt;
       const newPattern = `![${newAltFull}](${src})`;
       if (mdRef.current.includes(oldPattern)) {
@@ -381,12 +385,13 @@ function App() {
 
     contentRef.current.querySelectorAll('img').forEach(img => {
       const align = img.getAttribute('data-align') || 'left';
+      const offset = parseInt(img.getAttribute('data-offset') || '0', 10);
       const wrapper = document.createElement('span');
       const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
       wrapper.style.cssText = `display:flex;justify-content:${justifyMap[align] || 'flex-start'};position:relative;max-width:100%;`;
 
       const inner = document.createElement('span');
-      inner.style.cssText = 'display:inline-block;position:relative;max-width:100%;';
+      inner.style.cssText = `display:inline-block;position:relative;max-width:100%;${offset ? `margin-left:${offset}px;` : ''}`;
       img.parentNode.insertBefore(wrapper, img);
       wrapper.appendChild(inner);
       inner.appendChild(img);
@@ -396,6 +401,22 @@ function App() {
       const toolbar = document.createElement('span');
       toolbar.style.cssText = 'position:absolute;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:rgba(0,0,0,.55);border-radius:6px;padding:3px 4px;opacity:0;transition:opacity .15s;z-index:10;';
       inner.appendChild(toolbar);
+
+      // Nudge left button
+      const nudgeLeftBtn = document.createElement('span');
+      nudgeLeftBtn.innerHTML = '<svg viewBox="0 0 18 15" width="12" height="12"><path d="M6 7.5L12 4v7z" fill="white"/></svg>';
+      nudgeLeftBtn.style.cssText = 'cursor:pointer;padding:3px 5px;border-radius:4px;display:flex;align-items:center;';
+      nudgeLeftBtn.onclick = (e) => {
+        e.stopPropagation();
+        const curWidth = img.getAttribute('width') || '';
+        updateImgMd(img, curWidth, align, String(offset - 20));
+      };
+      toolbar.appendChild(nudgeLeftBtn);
+
+      // Separator
+      const sep1 = document.createElement('span');
+      sep1.style.cssText = 'width:1px;height:12px;background:rgba(255,255,255,.25);margin:0 1px;';
+      toolbar.appendChild(sep1);
 
       ['left', 'center', 'right'].forEach(a => {
         const btn = document.createElement('span');
@@ -407,10 +428,26 @@ function App() {
         btn.onclick = (e) => {
           e.stopPropagation();
           const curWidth = img.getAttribute('width') || '';
-          updateImgMd(img, curWidth, a);
+          updateImgMd(img, curWidth, a, offset ? String(offset) : '');
         };
         toolbar.appendChild(btn);
       });
+
+      // Separator
+      const sep2 = document.createElement('span');
+      sep2.style.cssText = 'width:1px;height:12px;background:rgba(255,255,255,.25);margin:0 1px;';
+      toolbar.appendChild(sep2);
+
+      // Nudge right button
+      const nudgeRightBtn = document.createElement('span');
+      nudgeRightBtn.innerHTML = '<svg viewBox="0 0 18 15" width="12" height="12"><path d="M12 7.5L6 4v7z" fill="white"/></svg>';
+      nudgeRightBtn.style.cssText = 'cursor:pointer;padding:3px 5px;border-radius:4px;display:flex;align-items:center;';
+      nudgeRightBtn.onclick = (e) => {
+        e.stopPropagation();
+        const curWidth = img.getAttribute('width') || '';
+        updateImgMd(img, curWidth, align, String(offset + 20));
+      };
+      toolbar.appendChild(nudgeRightBtn);
 
       // Resize handle
       const handle = document.createElement('span');
@@ -436,7 +473,7 @@ function App() {
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup', onUp);
           const finalW = Math.round(img.offsetWidth);
-          updateImgMd(img, String(finalW), align);
+          updateImgMd(img, String(finalW), align, offset ? String(offset) : '');
         };
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
@@ -1019,6 +1056,14 @@ function App() {
             </svg>
           </button>
           <button onClick={() => prefixLine('---\n')} title="Horizontal rule">―</button>
+          <span className="tb-sep" style={{ background: editorTheme.edBorder || '#444' }} />
+          <button onClick={() => {
+            const el = editorRef.current;
+            if (!el) return;
+            const pos = el.selectionStart;
+            setMd(md.substring(0, pos) + '\n<br>\n' + md.substring(pos));
+            setTimeout(() => { el.focus(); el.selectionStart = el.selectionEnd = pos + 5; }, 0);
+          }} title="빈 줄 삽입" style={{ fontSize: 10, letterSpacing: -0.5 }}>br</button>
         </div>}
         <div className={`search-bar ${searchVisible ? 'visible' : ''}`}
           style={{
