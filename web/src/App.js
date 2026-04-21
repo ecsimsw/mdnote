@@ -392,7 +392,7 @@ function App() {
       wrapper.style.cssText = `display:flex;justify-content:${justifyMap[align] || 'flex-start'};position:relative;max-width:100%;`;
 
       const inner = document.createElement('span');
-      inner.style.cssText = `display:inline-block;position:relative;max-width:100%;${offset ? `margin-left:${offset}px;` : ''}`;
+      inner.style.cssText = `display:inline-block;position:relative;max-width:100%;${offset ? `transform:translateX(${offset}px);` : ''}`;
       img.parentNode.insertBefore(wrapper, img);
       wrapper.appendChild(inner);
       inner.appendChild(img);
@@ -449,6 +449,26 @@ function App() {
         updateImgMd(img, curWidth, align, String(offset + 20));
       };
       toolbar.appendChild(nudgeRightBtn);
+
+      // Separator
+      const sep3 = document.createElement('span');
+      sep3.style.cssText = 'width:1px;height:12px;background:rgba(255,255,255,.25);margin:0 1px;';
+      toolbar.appendChild(sep3);
+
+      // Delete button
+      const delBtn = document.createElement('span');
+      delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="white" stroke-width="2.5"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>';
+      delBtn.style.cssText = 'cursor:pointer;padding:3px 5px;border-radius:4px;display:flex;align-items:center;';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        const rawAlt = img.getAttribute('data-raw-alt') || '';
+        const src = img.src;
+        const pattern = `![${rawAlt}](${src})`;
+        if (mdRef.current.includes(pattern)) {
+          setMd(mdRef.current.replace(pattern, ''));
+        }
+      };
+      toolbar.appendChild(delBtn);
 
       // Resize handle
       const handle = document.createElement('span');
