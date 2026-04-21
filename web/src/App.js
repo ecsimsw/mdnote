@@ -6,6 +6,7 @@ import './styles/preview.css';
 import './styles/themes.css';
 
 marked.use({
+  breaks: true,
   tokenizer: {
     del(src) {
       const match = /^~~(?=\S)([\s\S]*?\S)~~/.exec(src);

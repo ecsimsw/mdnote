@@ -76,6 +76,7 @@ pre:hover .copy-btn { opacity: 1; }
 blockquote {
   border-left: 2px solid #ddd;
   padding: calc(10px * var(--spacing)) 18px; margin: calc(24px * var(--spacing)) 0; color: #666; font-size: 14px;
+  line-height: calc(2.2 * var(--spacing));
 }
 
 table { width: 100%; border-collapse: collapse; margin: calc(24px * var(--spacing)) 0; font-size: 15px; color: #333; }
