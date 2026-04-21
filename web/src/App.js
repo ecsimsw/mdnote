@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
 import THEMES from './themes';
+import './styles/editor.css';
+import './styles/preview.css';
+import './styles/themes.css';
 
 marked.use({
   tokenizer: {
@@ -10,11 +13,30 @@ marked.use({
         return { type: 'del', raw: match[0], text: match[1] };
       }
     }
+  },
+  renderer: {
+    image(token) {
+      let alt = token.text || '';
+      let width = '';
+      let align = '';
+      const parts = alt.split('|');
+      if (parts.length >= 2) {
+        const parsed = parts.slice(1).map(s => s.trim());
+        const remaining = [];
+        parsed.forEach(p => {
+          if (/^\d+$/.test(p)) width = p;
+          else if (['left', 'center', 'right'].includes(p)) align = p;
+          else remaining.push(p);
+        });
+        alt = [parts[0].trim(), ...remaining].join('|');
+      }
+      const widthAttr = width ? ` width="${width}"` : '';
+      const alignAttr = align ? ` data-align="${align}"` : '';
+      const title = token.title ? ` title="${token.title}"` : '';
+      return `<img src="${token.href}" alt="${alt}"${title}${widthAttr}${alignAttr} data-raw-alt="${token.text || ''}" />`;
+    }
   }
 });
-import './styles/editor.css';
-import './styles/preview.css';
-import './styles/themes.css';
 
 
 const SAMPLE_MD = `# Hello, Mdviewer
@@ -338,6 +360,88 @@ function App() {
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.innerHTML = marked.parse(md);
+
+    // Add image resize handles + alignment controls
+    const updateImgMd = (img, newWidth, newAlign) => {
+      const rawAlt = img.getAttribute('data-raw-alt') || '';
+      const src = img.src;
+      // Parse clean alt (strip width/align parts)
+      const parts = rawAlt.split('|');
+      const cleanAlt = parts[0].trim() || img.alt || 'image';
+      const oldPattern = `![${rawAlt}](${src})`;
+      const suffixes = [];
+      if (newWidth) suffixes.push(newWidth);
+      if (newAlign && newAlign !== 'left') suffixes.push(newAlign);
+      const newAltFull = suffixes.length > 0 ? `${cleanAlt}|${suffixes.join('|')}` : cleanAlt;
+      const newPattern = `![${newAltFull}](${src})`;
+      if (mdRef.current.includes(oldPattern)) {
+        setMd(mdRef.current.replace(oldPattern, newPattern));
+      }
+    };
+
+    contentRef.current.querySelectorAll('img').forEach(img => {
+      const align = img.getAttribute('data-align') || 'left';
+      const wrapper = document.createElement('span');
+      const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
+      wrapper.style.cssText = `display:flex;justify-content:${justifyMap[align] || 'flex-start'};position:relative;max-width:100%;`;
+
+      const inner = document.createElement('span');
+      inner.style.cssText = 'display:inline-block;position:relative;max-width:100%;';
+      img.parentNode.insertBefore(wrapper, img);
+      wrapper.appendChild(inner);
+      inner.appendChild(img);
+      img.style.cssText = 'display:block;max-width:100%;height:auto;' + (img.getAttribute('width') ? `width:${img.getAttribute('width')}px;` : '');
+
+      // Toolbar (align buttons)
+      const toolbar = document.createElement('span');
+      toolbar.style.cssText = 'position:absolute;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:rgba(0,0,0,.55);border-radius:6px;padding:3px 4px;opacity:0;transition:opacity .15s;z-index:10;';
+      inner.appendChild(toolbar);
+
+      ['left', 'center', 'right'].forEach(a => {
+        const btn = document.createElement('span');
+        const lines = a === 'left' ? '4,4 14,4 4,7.5 12,7.5 4,11 14,11'
+          : a === 'center' ? '4,4 14,4 5,7.5 13,7.5 4,11 14,11'
+          : '4,4 14,4 6,7.5 14,7.5 4,11 14,11';
+        btn.innerHTML = `<svg viewBox="0 0 18 15" width="14" height="12"><line x1="${lines.split(' ')[0].split(',')[0]}" y1="${lines.split(' ')[0].split(',')[1]}" x2="${lines.split(' ')[1].split(',')[0]}" y2="${lines.split(' ')[1].split(',')[1]}" stroke="white" stroke-width="1.5"/><line x1="${lines.split(' ')[2].split(',')[0]}" y1="${lines.split(' ')[2].split(',')[1]}" x2="${lines.split(' ')[3].split(',')[0]}" y2="${lines.split(' ')[3].split(',')[1]}" stroke="white" stroke-width="1.5"/><line x1="${lines.split(' ')[4].split(',')[0]}" y1="${lines.split(' ')[4].split(',')[1]}" x2="${lines.split(' ')[5].split(',')[0]}" y2="${lines.split(' ')[5].split(',')[1]}" stroke="white" stroke-width="1.5"/></svg>`;
+        btn.style.cssText = `cursor:pointer;padding:3px 5px;border-radius:4px;display:flex;align-items:center;${a === align ? 'background:rgba(255,255,255,.25);' : ''}`;
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const curWidth = img.getAttribute('width') || '';
+          updateImgMd(img, curWidth, a);
+        };
+        toolbar.appendChild(btn);
+      });
+
+      // Resize handle
+      const handle = document.createElement('span');
+      handle.style.cssText = 'position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;opacity:0;transition:opacity .15s;background:linear-gradient(135deg,transparent 50%,rgba(0,122,255,.5) 50%);border-radius:0 0 2px 0;';
+      inner.appendChild(handle);
+
+      inner.onmouseenter = () => { handle.style.opacity = '1'; toolbar.style.opacity = '1'; };
+      inner.onmouseleave = () => { if (!handle.dragging) { handle.style.opacity = '0'; toolbar.style.opacity = '0'; } };
+
+      handle.onmousedown = (e) => {
+        e.preventDefault();
+        handle.dragging = true;
+        const startX = e.clientX;
+        const startW = img.offsetWidth;
+        const onMove = (ev) => {
+          const newW = Math.max(30, startW + ev.clientX - startX);
+          img.style.width = newW + 'px';
+        };
+        const onUp = () => {
+          handle.dragging = false;
+          handle.style.opacity = '0';
+          toolbar.style.opacity = '0';
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          const finalW = Math.round(img.offsetWidth);
+          updateImgMd(img, String(finalW), align);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      };
+    });
 
     // Add copy buttons
     contentRef.current.querySelectorAll('pre').forEach(pre => {
