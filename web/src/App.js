@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
 import THEMES from './themes';
+import { loadSetting, saveSetting } from './hooks/useStorage';
+import CloudMenu from './components/CloudMenu';
+import SaveModal from './components/SaveModal';
+import ErrorToast from './components/ErrorToast';
+import * as github from './services/github';
+import * as s3 from './services/s3';
 import './styles/editor.css';
 import './styles/preview.css';
 import './styles/themes.css';
@@ -68,17 +74,6 @@ console.log("Hello, world!");
 | A    | 1     |
 | B    | 2     |
 `;
-
-function loadSetting(key, fallback) {
-  try {
-    const v = localStorage.getItem('mdeditor_' + key);
-    return v !== null ? JSON.parse(v) : fallback;
-  } catch { return fallback; }
-}
-
-function saveSetting(key, value) {
-  localStorage.setItem('mdeditor_' + key, JSON.stringify(value));
-}
 
 const DEFAULT_THEME = THEMES.find(t => t.cls === '') || THEMES[0];
 const DEFAULT_EDITOR_THEME = THEMES.find(t => t.cls === 'dark') || THEMES[1];
@@ -323,12 +318,110 @@ function App() {
   const [actionToast, setActionToast] = useState('');
   const actionToastTimerRef = useRef(null);
 
+  // Remote/cloud state
+  const [activeConnection, setActiveConnection] = useState({ type: 'local' });
+  const [remoteInfo, setRemoteInfo] = useState(null);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [remoteSaving, setRemoteSaving] = useState(false);
+  const remoteInfoRef = useRef(null);
+  remoteInfoRef.current = remoteInfo;
+
+  // 원격 파일 목록 (GitHub/S3)
+  const [remoteFiles, setRemoteFiles] = useState([]);
+  const [remoteFilesLoading, setRemoteFilesLoading] = useState(false);
+  const [remoteFileSearch, setRemoteFileSearch] = useState('');
+
+  // activeConnection이 바뀌면 원격 파일 목록 로드
+  useEffect(() => {
+    if (activeConnection.type === 'local') {
+      setRemoteFiles([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      setRemoteFilesLoading(true);
+      setRemoteFileSearch('');
+      try {
+        let files = [];
+        if (activeConnection.type === 'github') {
+          files = await github.listMdFiles(activeConnection.token, activeConnection.repo, activeConnection.branch);
+        } else if (activeConnection.type === 's3') {
+          files = await s3.listMdFiles(activeConnection.accessKey, activeConnection.secretKey, activeConnection.bucket, activeConnection.region);
+        }
+        if (!cancelled) setRemoteFiles(files);
+      } catch (err) {
+        if (!cancelled) setErrorMessage(err.message);
+      } finally {
+        if (!cancelled) setRemoteFilesLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [activeConnection]);
+
+  const loadRemoteFile = useCallback(async (file) => {
+    const conn = activeConnection;
+    try {
+      if (conn.type === 'github') {
+        const { content, sha } = await github.getFileContent(conn.token, conn.repo, file.path);
+        const id = Date.now();
+        setDocs(prev => [{ id, title: file.path.split('/').pop().replace(/\.md$/i, ''), content, updatedAt: id }, ...prev].slice(0, 20));
+        setMdRaw(content);
+        undoStack.current = [];
+        redoStack.current = [];
+        setCurrentDocId(id);
+        setRemoteInfo({ source: 'github', token: conn.token, repo: conn.repo, branch: conn.branch, path: file.path, sha });
+      } else if (conn.type === 's3') {
+        const { content, etag } = await s3.getFileContent(conn.accessKey, conn.secretKey, conn.bucket, file.path, conn.region);
+        const id = Date.now();
+        setDocs(prev => [{ id, title: file.path.split('/').pop().replace(/\.md$/i, ''), content, updatedAt: id }, ...prev].slice(0, 20));
+        setMdRaw(content);
+        undoStack.current = [];
+        redoStack.current = [];
+        setCurrentDocId(id);
+        setRemoteInfo({ source: 's3', accessKey: conn.accessKey, secretKey: conn.secretKey, region: conn.region, bucket: conn.bucket, path: file.path, etag });
+      }
+      setDocMenuVisible(false);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  }, [activeConnection]);
+
+  const handleRemoteSave = useCallback(async (commitMsg) => {
+    const info = remoteInfoRef.current;
+    if (!info) return;
+    setRemoteSaving(true);
+    try {
+      if (info.source === 'github') {
+        const result = await github.commitFile(info.token, info.repo, info.path, mdRef.current, commitMsg, info.sha);
+        setRemoteInfo(prev => ({ ...prev, sha: result.content.sha }));
+        setActionToast('Committed');
+      } else if (info.source === 's3') {
+        await s3.putFile(info.accessKey, info.secretKey, info.bucket, info.path, mdRef.current, info.region);
+        setActionToast('Uploaded');
+      }
+      clearTimeout(actionToastTimerRef.current);
+      actionToastTimerRef.current = setTimeout(() => setActionToast(''), 1500);
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setRemoteSaving(false);
+      setSaveModalVisible(false);
+    }
+  }, []);
+
   const flushSave = useCallback((showIndicator) => {
     saveSetting('md', mdRef.current);
     if (currentDocIdRef.current) {
       setDocs(prev => prev.map(d => d.id === currentDocIdRef.current ? { ...d, content: mdRef.current, updatedAt: Date.now() } : d));
     }
     if (showIndicator) {
+      // If remote source, show save modal instead
+      if (remoteInfoRef.current) {
+        setSaveModalVisible(true);
+        return;
+      }
       setSavedVisible(true);
       clearTimeout(savedTimerRef.current);
       savedTimerRef.current = setTimeout(() => setSavedVisible(false), 1000);
@@ -364,7 +457,12 @@ function App() {
   // Highlight in preview
   useEffect(() => {
     if (!contentRef.current) return;
-    contentRef.current.innerHTML = marked.parse(md);
+    // Only allow - as list marker; escape ordered (1. 2.) and */+ markers
+    const preprocessed = md
+      .replace(/^(\s*)(\d+)([.)]\s)/gm, '$1$2\u200B$3')
+      .replace(/^(\s*)\*( )/gm, '$1\\*$2')
+      .replace(/^(\s*)\+( )/gm, '$1\\+$2');
+    contentRef.current.innerHTML = marked.parse(preprocessed);
 
     // Add image resize handles + alignment controls
     const updateImgMd = (img, newWidth, newAlign, newOffset) => {
@@ -663,7 +761,7 @@ function App() {
         flushSave(true);
       }
       // Auto-focus editor on typing when nothing is focused
-      if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1 &&
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key && e.key.length === 1 &&
           document.activeElement === document.body && editorRef.current) {
         editorRef.current.focus();
       }
@@ -675,6 +773,7 @@ function App() {
   // Close theme menu on outside click
   useEffect(() => {
     const handler = (e) => {
+      if (!document.contains(e.target)) return;
       if (themeMenuRef.current && !themeMenuRef.current.contains(e.target) &&
           themeBtnRef.current && !themeBtnRef.current.contains(e.target)) {
         setThemeMenuVisible(false);
@@ -944,6 +1043,13 @@ function App() {
           <a className="file-name" href="https://github.com/ecsimsw/mdnote" target="_blank" rel="noopener noreferrer"
             style={{ color: editorTheme.edHeaderColor || '#ccc', textDecoration: 'none', cursor: 'pointer', fontWeight: 700, userSelect: 'none' }}>MdEditor</a>
           <div className="header-controls">
+            <CloudMenu
+              editorTheme={editorTheme}
+              activeConnection={activeConnection}
+              onSelectConnection={setActiveConnection}
+              onError={setErrorMessage}
+            />
+            <div className="ctrl-sep" style={{ background: editorTheme.edBorder || '#444' }} />
             <button className="ctrl-btn" ref={docBtnRef}
               onClick={() => setDocMenuVisible(v => !v)} title="문서 목록"
               style={{ color: editorTheme.edHeaderColor || '#ccc' }}>
@@ -1343,68 +1449,136 @@ function App() {
           return { top: rect.bottom + 4, left: rect.left, minWidth: 200, maxHeight: 360, overflowY: 'auto' };
         })() : {}}
       >
-        {newDocInputVisible ? (
-          <div className="list-option" style={{ padding: '4px 8px', gap: 4, display: 'flex', alignItems: 'center' }}>
-            <input
-              ref={newDocInputRef}
-              type="text"
-              value={newDocTitle}
-              onChange={e => setNewDocTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') confirmNewDoc(); if (e.key === 'Escape') setNewDocInputVisible(false); }}
-              onClick={e => e.stopPropagation()}
-              style={{
-                flex: 1, background: 'transparent', border: '1px solid #ddd', borderRadius: 4,
-                color: 'inherit', fontSize: 12, padding: '3px 6px', outline: 'none', minWidth: 0,
-              }}
-            />
-          </div>
+        {activeConnection.type === 'local' ? (
+          <>
+            {newDocInputVisible ? (
+              <div className="list-option" style={{ padding: '4px 8px', gap: 4, display: 'flex', alignItems: 'center' }}>
+                <input
+                  ref={newDocInputRef}
+                  type="text"
+                  value={newDocTitle}
+                  onChange={e => setNewDocTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') confirmNewDoc(); if (e.key === 'Escape') setNewDocInputVisible(false); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    flex: 1, background: 'transparent', border: '1px solid #ddd', borderRadius: 4,
+                    color: 'inherit', fontSize: 12, padding: '3px 6px', outline: 'none', minWidth: 0,
+                  }}
+                />
+              </div>
+            ) : (
+              <button className="list-option" onClick={e => { e.stopPropagation(); openNewDocInput(); }}
+                style={{ fontWeight: 600, opacity: 0.7, fontSize: 12 }}>
+                새 문서
+              </button>
+            )}
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.2)', margin: '4px 0' }} />
+            {docs.length === 0 && (
+              <div style={{ padding: '8px 12px', fontSize: 12, opacity: 0.4 }}>저장된 문서가 없습니다</div>
+            )}
+            {docs.map(d => (
+              renamingDocId === d.id ? (
+                <div key={d.id} className="list-option active" style={{ padding: '4px 8px', gap: 4, display: 'flex', alignItems: 'center' }}>
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    value={renamingTitle}
+                    onChange={e => setRenamingTitle(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') setRenamingDocId(null); }}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      flex: 1, background: 'transparent', border: '1px solid #ddd', borderRadius: 4,
+                      color: 'inherit', fontSize: 12, padding: '3px 6px', outline: 'none', minWidth: 0,
+                    }}
+                  />
+                </div>
+              ) : (
+                <button
+                  key={d.id}
+                  className={`list-option ${currentDocId === d.id ? 'active' : ''}`}
+                  onClick={() => loadDoc(d)}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>{d.title}</span>
+                  <span onClick={(e) => startRename(d, e)}
+                    style={{ fontSize: 10, opacity: 0.3, flexShrink: 0, padding: '0 2px' }}
+                    onMouseEnter={e => e.target.style.opacity = 0.8}
+                    onMouseLeave={e => e.target.style.opacity = 0.3}
+                  >✎</span>
+                  <span onClick={(e) => deleteDoc(d.id, e)}
+                    style={{ fontSize: 11, opacity: 0.3, flexShrink: 0, padding: '0 2px' }}
+                    onMouseEnter={e => e.target.style.opacity = 0.8}
+                    onMouseLeave={e => e.target.style.opacity = 0.3}
+                  >✕</span>
+                </button>
+              )
+            ))}
+          </>
         ) : (
-          <button className="list-option" onClick={e => { e.stopPropagation(); openNewDocInput(); }}
-            style={{ fontWeight: 600, opacity: 0.7, fontSize: 12 }}>
-            새 문서
-          </button>
-        )}
-        <div style={{ height: 1, background: 'rgba(128,128,128,0.2)', margin: '4px 0' }} />
-        {docs.length === 0 && (
-          <div style={{ padding: '8px 12px', fontSize: 12, opacity: 0.4 }}>저장된 문서가 없습니다</div>
-        )}
-        {docs.map(d => (
-          renamingDocId === d.id ? (
-            <div key={d.id} className="list-option active" style={{ padding: '4px 8px', gap: 4, display: 'flex', alignItems: 'center' }}>
-              <input
-                ref={renameInputRef}
-                type="text"
-                value={renamingTitle}
-                onChange={e => setRenamingTitle(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') setRenamingDocId(null); }}
-                onClick={e => e.stopPropagation()}
+          <>
+            <div style={{ padding: '6px 10px 2px' }}>
+              <input type="text" placeholder="파일 검색..."
+                value={remoteFileSearch} onChange={e => setRemoteFileSearch(e.target.value)}
                 style={{
-                  flex: 1, background: 'transparent', border: '1px solid #ddd', borderRadius: 4,
-                  color: 'inherit', fontSize: 12, padding: '3px 6px', outline: 'none', minWidth: 0,
-                }}
-              />
+                  width: '100%', background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.3)', borderRadius: 4,
+                  color: 'inherit', fontSize: 11, padding: '4px 6px', outline: 'none', fontFamily: 'inherit',
+                }} />
             </div>
-          ) : (
-            <button
-              key={d.id}
-              className={`list-option ${currentDocId === d.id ? 'active' : ''}`}
-              onClick={() => loadDoc(d)}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
-            >
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>{d.title}</span>
-              <span onClick={(e) => startRename(d, e)}
-                style={{ fontSize: 10, opacity: 0.3, flexShrink: 0, padding: '0 2px' }}
-                onMouseEnter={e => e.target.style.opacity = 0.8}
-                onMouseLeave={e => e.target.style.opacity = 0.3}
-              >✎</span>
-              <span onClick={(e) => deleteDoc(d.id, e)}
-                style={{ fontSize: 11, opacity: 0.3, flexShrink: 0, padding: '0 2px' }}
-                onMouseEnter={e => e.target.style.opacity = 0.8}
-                onMouseLeave={e => e.target.style.opacity = 0.3}
-              >✕</span>
-            </button>
-          )
-        ))}
+            <div style={{ padding: '4px 12px', fontSize: 10, opacity: 0.4 }}>
+              {activeConnection.type === 'github' ? activeConnection.repo : activeConnection.bucket}
+            </div>
+            {remoteFilesLoading && <div style={{ padding: 12, fontSize: 12, opacity: 0.5, textAlign: 'center' }}>로딩 중...</div>}
+            {!remoteFilesLoading && remoteFiles.length === 0 && (
+              <div style={{ padding: 12, fontSize: 12, opacity: 0.4 }}>.md 파일이 없습니다</div>
+            )}
+            {!remoteFilesLoading && remoteFiles.length > 0 && (() => {
+              const searchLower = remoteFileSearch.toLowerCase();
+              const filtered = remoteFileSearch
+                ? remoteFiles.filter(f => f.path.toLowerCase().includes(searchLower))
+                : remoteFiles;
+              const tree = {};
+              filtered.forEach(f => {
+                const parts = f.path.split('/');
+                let node = tree;
+                parts.forEach((part, i) => {
+                  if (i === parts.length - 1) {
+                    if (!node.__files) node.__files = [];
+                    node.__files.push(f);
+                  } else {
+                    if (!node[part]) node[part] = {};
+                    node = node[part];
+                  }
+                });
+              });
+              const renderTree = (t, depth) => {
+                const items = [];
+                Object.keys(t).filter(k => k !== '__files').sort().forEach(dir => {
+                  items.push(
+                    <div key={`d-${depth}-${dir}`} style={{ padding: '4px 8px 4px ' + (12 + depth * 12) + 'px', fontSize: 12, opacity: 0.6, fontWeight: 600 }}>
+                      {dir}/
+                    </div>
+                  );
+                  items.push(...renderTree(t[dir], depth + 1));
+                });
+                if (t.__files) {
+                  t.__files.forEach(f => {
+                    const name = f.path.split('/').pop();
+                    items.push(
+                      <button key={f.path} className="list-option"
+                        onClick={() => loadRemoteFile(f)}
+                        style={{ paddingLeft: (12 + depth * 12) + 'px', fontSize: 12, textAlign: 'left' }}>
+                        {name}
+                      </button>
+                    );
+                  });
+                }
+                return items;
+              };
+              return renderTree(tree, 0);
+            })()}
+          </>
+        )}
       </div>
 
       <div
@@ -1548,6 +1722,15 @@ function App() {
         })}
       </div>
 
+      {saveModalVisible && remoteInfo && (
+        <SaveModal
+          remoteInfo={remoteInfo}
+          onSave={handleRemoteSave}
+          onCancel={() => setSaveModalVisible(false)}
+        />
+      )}
+
+      <ErrorToast message={errorMessage} onClose={() => setErrorMessage('')} />
 
     </div>
   );
